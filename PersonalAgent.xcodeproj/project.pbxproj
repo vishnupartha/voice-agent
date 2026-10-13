@@ -1,0 +1,407 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0A9175255B4B6032AA5FE814 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758B3D6105B70BBFACAA76E5 /* MainWindow.swift */; };
+		0F9975B5FD57FF4245104B93 /* GlobalHotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1DE2FBE10DFC0F0E848AD65 /* GlobalHotkey.swift */; };
+		243E4EC1DA58DA9D869FBBFC /* ApprovalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1F7EAB39B9E8698192E7E6 /* ApprovalView.swift */; };
+		2B02B0D1992D1DFA493CEBD3 /* VoiceOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC23D26917678F4C1D62C968 /* VoiceOverlay.swift */; };
+		3A5E047780C9CCBB593A16AE /* AgentClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D66EA16D9D08400B22246E4 /* AgentClient.swift */; };
+		583A0994DAF9F685E031389E /* AppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BA91892EE42C4E701C74916 /* AppLifecycle.swift */; };
+		58E28ED9BBB34E66D3BE83D0 /* ToolStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10843109D229BFDD003D370 /* ToolStatusView.swift */; };
+		64EA2DF39424998D7D50927F /* AudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E68FF35750518686B4A847F /* AudioCapture.swift */; };
+		67EAA21B943D9F898141436F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EED03E2568255200F056D6C /* AppState.swift */; };
+		6D095C718DA8F1B47972A2F9 /* AudioPlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E0388227E0CDC5B08829E13 /* AudioPlayback.swift */; };
+		A76901B86B6FBF5436B10A4A /* AudioSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00DC74AC6C0735643C92C10E /* AudioSession.swift */; };
+		EA69EEEA57D51A5AD0604527 /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5576B43ADED82C2DA6E0D0D5 /* ConversationView.swift */; };
+		EEF2CECA3384C2ECA5D1B76F /* PersonalAgentApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42EC19366BBB9372F7252909 /* PersonalAgentApp.swift */; };
+		FC008369E54E552BAFB4D77F /* MessageTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AFFBD1D36B7CE54859C5635 /* MessageTypes.swift */; };
+		FE00B112B9742DD3C139C520 /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7EB6E62034AA636A0777FA /* WebSocketClient.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		00DC74AC6C0735643C92C10E /* AudioSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSession.swift; sourceTree = "<group>"; };
+		0C1F7EAB39B9E8698192E7E6 /* ApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalView.swift; sourceTree = "<group>"; };
+		1BA91892EE42C4E701C74916 /* AppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycle.swift; sourceTree = "<group>"; };
+		1D66EA16D9D08400B22246E4 /* AgentClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentClient.swift; sourceTree = "<group>"; };
+		4095D0B9A41D00DA5603C827 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		42EC19366BBB9372F7252909 /* PersonalAgentApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalAgentApp.swift; sourceTree = "<group>"; };
+		5576B43ADED82C2DA6E0D0D5 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
+		5C7EB6E62034AA636A0777FA /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
+		5DA14C77B85C07DE9AFDA2EE /* PersonalAgent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PersonalAgent.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E0388227E0CDC5B08829E13 /* AudioPlayback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayback.swift; sourceTree = "<group>"; };
+		758B3D6105B70BBFACAA76E5 /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
+		8AFFBD1D36B7CE54859C5635 /* MessageTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageTypes.swift; sourceTree = "<group>"; };
+		8E68FF35750518686B4A847F /* AudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCapture.swift; sourceTree = "<group>"; };
+		8EED03E2568255200F056D6C /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		A10843109D229BFDD003D370 /* ToolStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolStatusView.swift; sourceTree = "<group>"; };
+		C1DE2FBE10DFC0F0E848AD65 /* GlobalHotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkey.swift; sourceTree = "<group>"; };
+		EDD8D194A35A0183E02B92B7 /* PersonalAgent.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PersonalAgent.entitlements; sourceTree = "<group>"; };
+		FC23D26917678F4C1D62C968 /* VoiceOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOverlay.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		4A0B657B0F6A1AEFEF8E0D56 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5DA14C77B85C07DE9AFDA2EE /* PersonalAgent.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4CD231C3DDB2987428DA1FD4 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				0C1F7EAB39B9E8698192E7E6 /* ApprovalView.swift */,
+				5576B43ADED82C2DA6E0D0D5 /* ConversationView.swift */,
+				758B3D6105B70BBFACAA76E5 /* MainWindow.swift */,
+				A10843109D229BFDD003D370 /* ToolStatusView.swift */,
+				FC23D26917678F4C1D62C968 /* VoiceOverlay.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		6BA6F64C0FDD1666EAD08E8E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4095D0B9A41D00DA5603C827 /* Info.plist */,
+				EDD8D194A35A0183E02B92B7 /* PersonalAgent.entitlements */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7D9A56675B2E7919DDCE44C8 /* System */ = {
+			isa = PBXGroup;
+			children = (
+				C1DE2FBE10DFC0F0E848AD65 /* GlobalHotkey.swift */,
+			);
+			path = System;
+			sourceTree = "<group>";
+		};
+		83445128133A16940360AF94 /* Agent */ = {
+			isa = PBXGroup;
+			children = (
+				1D66EA16D9D08400B22246E4 /* AgentClient.swift */,
+				8AFFBD1D36B7CE54859C5635 /* MessageTypes.swift */,
+				5C7EB6E62034AA636A0777FA /* WebSocketClient.swift */,
+			);
+			path = Agent;
+			sourceTree = "<group>";
+		};
+		A7E0E692EC130BF3100FA08C /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				8E68FF35750518686B4A847F /* AudioCapture.swift */,
+				6E0388227E0CDC5B08829E13 /* AudioPlayback.swift */,
+				00DC74AC6C0735643C92C10E /* AudioSession.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		C27480A6CE65838CE1455604 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				1BA91892EE42C4E701C74916 /* AppLifecycle.swift */,
+				8EED03E2568255200F056D6C /* AppState.swift */,
+				42EC19366BBB9372F7252909 /* PersonalAgentApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		DF6E3F70EC391E71B5CA9950 /* MacApp */ = {
+			isa = PBXGroup;
+			children = (
+				83445128133A16940360AF94 /* Agent */,
+				C27480A6CE65838CE1455604 /* App */,
+				A7E0E692EC130BF3100FA08C /* Audio */,
+				6BA6F64C0FDD1666EAD08E8E /* Resources */,
+				7D9A56675B2E7919DDCE44C8 /* System */,
+				4CD231C3DDB2987428DA1FD4 /* UI */,
+			);
+			path = MacApp;
+			sourceTree = "<group>";
+		};
+		E420CC02BAAC4F04FF6D7CC9 = {
+			isa = PBXGroup;
+			children = (
+				DF6E3F70EC391E71B5CA9950 /* MacApp */,
+				4A0B657B0F6A1AEFEF8E0D56 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9399CDA3D4EB02BBFA090A3C /* PersonalAgent */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CBB813C4C98D739F2EC10B1C /* Build configuration list for PBXNativeTarget "PersonalAgent" */;
+			buildPhases = (
+				3E2CD4826C1ED95FD93AFA05 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PersonalAgent;
+			packageProductDependencies = (
+			);
+			productName = PersonalAgent;
+			productReference = 5DA14C77B85C07DE9AFDA2EE /* PersonalAgent.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7E03C3ADD2B2F55A9F387398 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					9399CDA3D4EB02BBFA090A3C = {
+						DevelopmentTeam = 52U8QDXBBG;
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = 6BCD8DB5EBBD3810E0033DB8 /* Build configuration list for PBXProject "PersonalAgent" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = E420CC02BAAC4F04FF6D7CC9;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4A0B657B0F6A1AEFEF8E0D56 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9399CDA3D4EB02BBFA090A3C /* PersonalAgent */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3E2CD4826C1ED95FD93AFA05 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3A5E047780C9CCBB593A16AE /* AgentClient.swift in Sources */,
+				583A0994DAF9F685E031389E /* AppLifecycle.swift in Sources */,
+				67EAA21B943D9F898141436F /* AppState.swift in Sources */,
+				243E4EC1DA58DA9D869FBBFC /* ApprovalView.swift in Sources */,
+				64EA2DF39424998D7D50927F /* AudioCapture.swift in Sources */,
+				6D095C718DA8F1B47972A2F9 /* AudioPlayback.swift in Sources */,
+				A76901B86B6FBF5436B10A4A /* AudioSession.swift in Sources */,
+				EA69EEEA57D51A5AD0604527 /* ConversationView.swift in Sources */,
+				0F9975B5FD57FF4245104B93 /* GlobalHotkey.swift in Sources */,
+				0A9175255B4B6032AA5FE814 /* MainWindow.swift in Sources */,
+				FC008369E54E552BAFB4D77F /* MessageTypes.swift in Sources */,
+				EEF2CECA3384C2ECA5D1B76F /* PersonalAgentApp.swift in Sources */,
+				58E28ED9BBB34E66D3BE83D0 /* ToolStatusView.swift in Sources */,
+				2B02B0D1992D1DFA493CEBD3 /* VoiceOverlay.swift in Sources */,
+				FE00B112B9742DD3C139C520 /* WebSocketClient.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		13EBDDF74536D029C8CB57BB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MacApp/Resources/PersonalAgent.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 52U8QDXBBG;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MacApp/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vishnupartha.PersonalAgent;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		361C5D136487EFAD23E1A911 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		6F118379356C90E840F7A0AF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A94F71C44B470DBE506AC7EB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MacApp/Resources/PersonalAgent.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 52U8QDXBBG;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MacApp/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vishnupartha.PersonalAgent;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6BCD8DB5EBBD3810E0033DB8 /* Build configuration list for PBXProject "PersonalAgent" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6F118379356C90E840F7A0AF /* Debug */,
+				361C5D136487EFAD23E1A911 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CBB813C4C98D739F2EC10B1C /* Build configuration list for PBXNativeTarget "PersonalAgent" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A94F71C44B470DBE506AC7EB /* Debug */,
+				13EBDDF74536D029C8CB57BB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7E03C3ADD2B2F55A9F387398 /* Project object */;
+}

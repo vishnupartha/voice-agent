@@ -1,0 +1,44 @@
+[project]
+name = "personal-agent"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "fastapi>=0.141.1",
+    "google-api-python-client>=2.201.0",
+    "google-auth>=2.62.0",
+    "google-auth-oauthlib>=1.5.0",
+    "httpx>=0.28.1",
+    "keyring>=25.7.0",
+    "mlx>=0.32.2",
+    "mlx-audio>=0.5.6",
+    "mlx-lm>=0.31.3",
+    "num2words>=0.5.14",
+    "orjson>=3.12.0",
+    "parakeet-mlx>=0.5.2",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "silero-vad>=6.2.3",
+    "structlog>=26.1.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+per-file-ignores = { "backend/agent/prompts.py" = ["E501"], "backend/tools/*.py" = ["E501"], "backend/tests/*.py" = ["E501"] }

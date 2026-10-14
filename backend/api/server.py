@@ -16,6 +16,7 @@ from backend.agent.agent import Agent
 from backend.agent.sessions import ConversationStore
 from backend.agent.tools import ToolRegistry
 from backend.api.auth import load_or_create_token, require_token
+from backend.api.setup import router as setup_router
 from backend.api.websocket import Services, agent_endpoint
 from backend.config import get_settings
 from backend.integrations.google_auth import GoogleAuth, GoogleNotConnected
@@ -82,7 +83,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     tools.register(
         *system_tools(),
         *gmail_tools(Gmail(google)),
-        *calendar_tools(Calendar(google, settings.data_dir / "preferences.json"), settings.holiday_state),
+        *calendar_tools(Calendar(google, settings.data_dir / "preferences.json")),
         *web_tools(),
     )
     app.state.services = Services(
@@ -96,6 +97,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Personal Agent", version=__version__, lifespan=lifespan)
+app.include_router(setup_router)
 
 
 @app.get("/health")

@@ -14,6 +14,11 @@ struct PersonalAgentApp: App {
             MainWindow(state: appDelegate.state)
         }
         .defaultSize(width: 700, height: 760)
+
+        Window("Personal Agent Settings", id: "settings") {
+            SettingsView(state: appDelegate.state)
+        }
+        .windowResizability(.contentSize)
     }
 }
 
@@ -62,6 +67,11 @@ private struct MenuBarMenu: View {
             NSApp.activate()
         }
         .keyboardShortcut("o")
+        Button("Settings…") {
+            openWindow(id: "settings")
+            NSApp.activate()
+        }
+        .keyboardShortcut(",")
         if case .unavailable = state.backend {
             Button("Restart Backend") { Task { await state.start() } }
         }
@@ -77,8 +87,11 @@ private struct MenuBarMenu: View {
         case .connecting:
             Text("Google: waiting for sign-in in your browser…")
         case .notConfigured:
-            // The client secret may be saved while the app is running; let the user re-check.
-            Button("Google: not set up — Check Again") { Task { await state.refreshConnections() } }
+            // The OAuth client file is added in Settings.
+            Button("Google: not set up — Open Settings…") {
+                openWindow(id: "settings")
+                NSApp.activate()
+            }
         case .disconnected, .unknown:
             Button("Connect Google…") { state.connectGoogle() }
                 .disabled(state.backend != .ready)

@@ -1,6 +1,5 @@
 name: PersonalAgent
 options:
-  bundleIdPrefix: com.vishnupartha
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true
@@ -37,14 +36,10 @@ targets:
         # and shares ~/Library/Application Support/PersonalAgent with it.
         com.apple.security.app-sandbox: false
         com.apple.security.device.audio-input: true
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.vishnupartha.PersonalAgent
-        # A real (stable) signing identity, not ad-hoc: macOS ties the microphone
-        # permission to the code signature, and an ad-hoc signature changes on
-        # every build, after which TCC silently feeds the app zeros.
-        CODE_SIGN_STYLE: Manual
-        CODE_SIGN_IDENTITY: Apple Development
-        DEVELOPMENT_TEAM: 52U8QDXBBG
         ENABLE_HARDENED_RUNTIME: NO
         GENERATE_INFOPLIST_FILE: NO

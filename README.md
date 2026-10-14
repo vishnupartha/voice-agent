@@ -1,44 +1,82 @@
 # Personal Agent
 
-A private voice assistant for your Mac. Speech recognition, the language model and the voice all run locally on Apple Silicon. Gmail and Google Calendar are optional connections.
+A voice assistant for your Mac. Press **Option+Space** anywhere, talk, and it answers out loud. It can check your Gmail and Google Calendar, search the web, and draft emails or add events (after you approve them).
+
+Speech recognition and the voice run on your Mac. The brain is Google's Gemini Flash (free with a Google account) by default, or, if you prefer everything local, a Qwen3.5 model running on your Mac.
+
+## Requirements
+
+- A Mac with Apple Silicon (M1 or later) running macOS 26 (Tahoe) or later
+- Xcode, from the App Store (to build the app)
+- About 5 GB of disk space (15 GB with the local brain)
+- A free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey), unless you use the local brain
+
+## Install
+
+```bash
+git clone https://github.com/vishnupartha/voice-agent.git
+cd voice-agent
+./install.sh
+```
+
+The script installs what's missing ([uv](https://docs.astral.sh/uv/), and XcodeGen via Homebrew), downloads the speech models, builds the app and puts it in Applications. Keep the folder: the app runs its backend from it. To update later, `git pull` and run `./install.sh` again.
+
+On first launch the **Settings** window opens. Paste your Gemini key. Then press **Option+Space** and allow microphone access.
+
+Want it fully local? Run `./install.sh --with-local` and choose **Qwen3.5 9B (local)** from the dashboard's **Brain** menu. It's private but noticeably less capable, and wants 24 GB of memory or more.
 
 ## Use it
 
 - **Option+Space** from any app opens the voice panel. Speak, pause, and it answers aloud. Talk over it to interrupt. Press Option+Space again to close the mic.
-- The **◉ menu bar icon** has Talk to Assistant, Connect Google, Open Dashboard and Quit.
-- The dashboard window shows the conversation, what the agent did (Gmail searched, calendar checked…), and any email draft it's working on. You can type there too.
-- Sending email and adding, changing or deleting calendar events always ask first. Click Send / Cancel, or just say "send it" / "cancel".
+- The **◉ menu bar icon** has Talk to Assistant, Open Dashboard, Settings and Quit. (On a MacBook with a notch, a crowded menu bar can hide it behind the notch.)
+- The **dashboard** shows the conversation and what the assistant did (searched Gmail, checked your calendar…). You can type there too. Its toolbar switches the **Brain** (Gemini or local) and the **Voice** (Kokoro, steady; or Qwen3-TTS, more expressive but occasionally ad-libs a laugh).
+- Sending email and adding, changing or deleting calendar events always ask first. Click Send / Cancel, or say "send it" / "cancel".
 
-Things to try: "What's important in my email?", "What does she want?", "Draft a reply saying Thursday after two works", "Make it shorter", "Send it", "What's my day look like tomorrow?", "When am I free Friday afternoon?", "Move my 3 PM to 4".
+Things to try: "What's on my calendar tomorrow?", "When am I free Friday afternoon?", "What's important in my email?", "Draft a reply saying Thursday after two works", "Make it shorter", "Send it", "Any holidays this month?", "Who won the game last night?"
 
-## Connect Google (one time, about 5 minutes)
+## Connect Google (optional)
 
-Google only lets apps read your mail through an OAuth client that belongs to a Google Cloud project, so you create a free one of your own:
+Google only lets apps read your mail through an OAuth client in a Google Cloud project, so each user creates a free one of their own:
 
-1. Go to <https://console.cloud.google.com/>, then create a project (e.g. "Personal Agent").
+1. Go to <https://console.cloud.google.com/> and create a project (e.g. "Personal Agent").
 2. **APIs & Services → Library**: enable **Gmail API** and **Google Calendar API**.
-3. **Google Auth Platform → Branding**: fill in an app name and your email (User type: External).
+3. **Google Auth Platform → Branding**: enter an app name and your email (User type: External).
 4. **Audience → Test users**: add your own Gmail address.
 5. **Clients → Create client → Desktop app**, then **Download JSON**.
-6. Store it in your Keychain:
-   ```bash
-   uv run python -m scripts.google_setup ~/Downloads/client_secret_*.json
-   ```
-   After that you can delete the downloaded file.
-7. Menu bar ◉ → **Connect Google…** opens your browser. Sign in, click through "Google hasn't verified this app" (it's your own app), and allow access.
+6. In Personal Agent's **Settings**, click **Choose Client File…** and pick the downloaded file. It's stored in your Keychain; you can delete the download afterwards.
+7. Click **Connect Google…**. Sign in in your browser, click through "Google hasn't verified this app" (it's your own app), and allow access.
 
-Note: while the app's publishing status is *Testing*, Google expires the sign-in after 7 days, and you'll need to choose Connect Google… again. To avoid that, set **Audience → Publish app** (it stays private to you).
+While the project's publishing status is *Testing*, Google ends the sign-in after 7 days. To avoid that, choose **Audience → Publish app**; it stays private to you.
 
-Tokens are stored in the macOS Keychain and never reach the model or the logs.
+The assistant reads every calendar that's ticked in Google Calendar's sidebar. To hide one from it (say, a calendar someone shared with you), add it to `hidden_calendars` in `~/Library/Application Support/PersonalAgent/preferences.json`.
+
+## Privacy
+
+- Speech recognition (NVIDIA Parakeet) and the voice (Kokoro or Qwen3-TTS) always run on your Mac. Audio is never stored.
+- With **Gemini** as the brain, what you say and whatever the assistant reads to answer you (email, calendar events, web pages) is sent to Google. On the free tier, Google may use it to improve its products. Choose the local brain if that's not OK.
+- Web search goes through DuckDuckGo.
+- Google sign-in tokens and API keys live in the macOS Keychain, never in files or logs.
+
+## Troubleshooting
+
+- **It doesn't hear me** (the level meter stays flat): System Settings → Privacy & Security → Microphone, and make sure Personal Agent is on. After rebuilding, run `./install.sh` again; it resets the permission so macOS asks afresh.
+- **"Gemini is busy"**: Flash is often overloaded on the free tier. The app falls back to Flash-Lite automatically; if both are busy, try again in a minute.
+- **Logs**: `~/Library/Logs/PersonalAgent/agentd.log`.
 
 ## Develop
 
 ```bash
 uv sync
-uv run python -m scripts.download_models     # ~9 GB into ~/Library/Application Support/PersonalAgent/models
+uv run python -m scripts.download_models    # speech models; add "llm tts" or "all" for the rest
 xcodegen generate && open PersonalAgent.xcodeproj   # Build & Run "My Mac"
-uv run pytest                                 # backend tests
-uv run python -m scripts.smoke_voice          # real-model latency check
+uv run pytest                                # backend tests
+uv run ruff check backend && uv run ruff format --check backend
 ```
 
-The app starts the backend itself (`uv run uvicorn backend.api.server:app`, bound to 127.0.0.1:8765). Logs are in `~/Library/Logs/PersonalAgent/`. Build progress and the stage plan are in [docs/ROADMAP.md](docs/ROADMAP.md); manual setup steps and the work queue are in [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md).
+Builds are ad-hoc signed by default. If you rebuild often, sign with your own certificate so the microphone permission survives rebuilds: copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and fill in your team ID.
+
+The app starts the backend itself (`uv run uvicorn backend.api.server:app`, bound to 127.0.0.1:8765). Settings such as model choices live in `backend/config.py` and can be overridden in a `.env.local` file. [docs/ROADMAP.md](docs/ROADMAP.md) has the architecture decisions and ideas for future work.
+
+## License
+
+[MIT](LICENSE). The models are downloaded from Hugging Face under their own licenses: Parakeet (CC-BY-4.0), Kokoro and Qwen (Apache-2.0).

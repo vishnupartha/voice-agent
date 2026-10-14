@@ -26,7 +26,7 @@ final class AudioSession {
         }
     }
 
-    private let log = Logger(subsystem: "com.vishnupartha.PersonalAgent", category: "audio")
+    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "PersonalAgent", category: "audio")
     private var engine: AVAudioEngine?
     private let capture = AudioCapture()
     let playback = AudioPlayback()

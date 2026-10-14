@@ -3,7 +3,10 @@
 Re-running resumes interrupted downloads and skips complete ones. Hugging Face
 verifies file hashes as it downloads.
 
-    uv run python scripts/download_models.py [stt|llm|tts|kokoro ...]
+    uv run python -m scripts.download_models            # speech in and out (~2.7 GB)
+    uv run python -m scripts.download_models llm        # + local brain, Qwen3.5 9B (~8 GB)
+    uv run python -m scripts.download_models tts        # + expressive Qwen3-TTS voice (~2.5 GB)
+    uv run python -m scripts.download_models all        # everything
 """
 
 from __future__ import annotations
@@ -23,7 +26,12 @@ def main(which: list[str]) -> None:
         "tts": settings.tts_repo,
         "kokoro": settings.kokoro_repo,
     }
-    for kind in which or list(repos):
+    # Speech recognition and the Kokoro voice are all Gemini mode needs.
+    default = ["stt", "kokoro"]
+    which = list(repos) if which == ["all"] else which or default
+    for kind in which:
+        if kind not in repos:
+            sys.exit(f"unknown model {kind!r}; choose from {', '.join(repos)} or all")
         repo = repos[kind]
         dest = settings.model_dir / repo.split("/")[-1]
         print(f"[{kind}] {repo} -> {dest}")

@@ -9,7 +9,6 @@ dependencies = [
     "google-api-python-client>=2.201.0",
     "google-auth>=2.62.0",
     "google-auth-oauthlib>=1.5.0",
-    "holidays>=0.106",
     "httpx>=0.28.1",
     "keyring>=25.7.0",
     "misaki[en]>=0.9.4",

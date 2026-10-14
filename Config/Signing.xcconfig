@@ -1,0 +1,16 @@
+// Signing and bundle ID. Defaults build an ad-hoc signed app anyone can run.
+//
+// To sign with your own Apple Development certificate (recommended if you
+// rebuild often), copy Config/Local.xcconfig.example to Config/Local.xcconfig
+// and fill it in. Local.xcconfig is gitignored.
+//
+// Why it matters: macOS ties the microphone permission to the code signature.
+// An ad-hoc signature changes on every build, after which macOS silently feeds
+// the app silence until the permission is reset (install.sh does that for you).
+
+PRODUCT_BUNDLE_IDENTIFIER = io.github.vishnupartha.PersonalAgent
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"

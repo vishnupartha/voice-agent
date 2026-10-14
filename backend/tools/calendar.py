@@ -48,12 +48,15 @@ class Calendar:
         self._calendars: list[dict[str, Any]] = []
         self._calendars_at = 0.0
 
+    def preference(self, key: str) -> Any:
+        return read_preferences(self._prefs).get(key) if self._prefs else None
+
     async def calendars(self) -> list[dict[str, Any]]:
         """Every calendar in the user's list (own, shared, subscribed), cached briefly."""
         if not self._calendars or monotonic() - self._calendars_at > CALENDAR_LIST_TTL_S:
             # Calendars hidden in the app (e.g. someone else's, shared with the
             # user): {"id", "name"} entries under "hidden_calendars".
-            hidden = read_preferences(self._prefs).get("hidden_calendars", []) if self._prefs else []
+            hidden = self.preference("hidden_calendars") or []
             hidden_ids = {h["id"] for h in hidden}
             resp = await self.call(lambda svc: svc.calendarList().list(maxResults=250))
             self._calendars = [
@@ -185,35 +188,6 @@ class SearchArgs(BaseModel):
     calendar_id: str | None = Field(None, description=_ALL)
 
 
-HOLIDAY_CALENDAR = "en.usa#holiday@group.v.calendar.google.com"
-
-
-# Days the offline table names one way but many places call something else too.
-_ALSO_CALLED = {"Columbus Day": "Columbus Day, also observed as Indigenous Peoples' Day"}
-_KINDS = {"public": "public holiday", "government": "government holiday", "unofficial": "observance"}
-
-
-def local_holidays(start: date, end: date, state: str | None = None) -> list[dict[str, Any]]:
-    """US holidays from the offline `holidays` table: federal and state public
-    holidays plus unofficial observances like Halloween."""
-    import holidays
-
-    found: dict[tuple[str, str], str] = {}
-    # "public" goes last so it wins when a day is also a government holiday.
-    for cat in sorted(holidays.US.supported_categories, key=lambda c: c == "public"):
-        table = holidays.US(subdiv=state, years=range(start.year, end.year + 1), categories=(cat,))
-        for day, names in table.items():
-            if start <= day <= end:
-                for name in names.split("; "):
-                    found[day.isoformat(), _ALSO_CALLED.get(name, name)] = _KINDS.get(cat, cat)
-    return [{"date": d, "name": n, "kind": k} for (d, n), k in sorted(found.items())]
-
-
-class HolidayArgs(BaseModel):
-    start: str | None = Field(None, description="ISO date; default: today")
-    end: str | None = Field(None, description="ISO date; default: 30 days after start")
-
-
 class FreeTimeArgs(BaseModel):
     start: str = Field(description="ISO date or datetime where the search begins")
     end: str | None = Field(None, description="ISO; default: end of the start day")
@@ -287,7 +261,7 @@ def _when_text(body: dict[str, Any]) -> str:
     return ""
 
 
-def calendar_tools(cal: Calendar, holiday_state: str | None = None) -> list[Tool]:
+def calendar_tools(cal: Calendar) -> list[Tool]:
     async def list_calendars(a: NoArgs, ctx: ToolContext) -> Any:
         return {
             "calendars": [
@@ -313,27 +287,6 @@ def calendar_tools(cal: Calendar, holiday_state: str | None = None) -> list[Tool
             a.calendar_id, q=a.query, timeMin=s.isoformat(), timeMax=e.isoformat(), maxResults=25
         )
         return {"query": a.query, "count": len(events), "events": events[:25]}
-
-    async def holidays(a: HolidayArgs, ctx: ToolContext) -> Any:
-        s = parse_when(a.start).date() if a.start else date.today()
-        e = parse_when(a.end).date() if a.end else s + timedelta(days=30)
-        found = local_holidays(s, e, holiday_state)
-        try:  # Google's list adds observances the offline table lacks.
-            resp = await cal.call(
-                lambda svc: svc.events().list(
-                    calendarId=HOLIDAY_CALENDAR, singleEvents=True, orderBy="startTime", maxResults=50,
-                    timeMin=datetime.combine(s, time.min, local_tz()).isoformat(),
-                    timeMax=datetime.combine(e, time.max, local_tz()).isoformat(),
-                )
-            )  # fmt: skip
-            for ev in resp.get("items", []):
-                day = ev["start"].get("date")
-                if day and not any(h["date"] == day and h["name"] == ev.get("summary") for h in found):
-                    found.append({"date": day, "name": ev.get("summary"), "kind": ev.get("description")})
-        except ToolError:
-            pass  # Google not connected; the offline table still answers
-        found.sort(key=lambda h: h["date"])
-        return {"from": s.isoformat(), "to": e.isoformat(), "count": len(found), "holidays": found}
 
     async def find_free_time(a: FreeTimeArgs, ctx: ToolContext) -> Any:
         s, e = _range(a.start, a.end)
@@ -433,9 +386,6 @@ def calendar_tools(cal: Calendar, holiday_state: str | None = None) -> list[Tool
         Tool("calendar.search", "Search events by text across all the user's calendars.", SearchArgs, search, R,
              untrusted=True,
              label="Searched calendar"),
-        Tool("calendar.holidays", "US public holidays and observances (federal, state, cultural and religious) "
-             "in a date range. Use for any question about holidays.", HolidayArgs, holidays, R,
-             label="Checked holidays"),
         Tool("calendar.find_free_time", "Find free slots between start and end.", FreeTimeArgs, find_free_time, R,
              label="Found free time"),
         Tool("calendar.create_event", "Create an event. The user is asked to approve first.", CreateArgs,

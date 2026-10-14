@@ -59,6 +59,10 @@ final class AppState {
     private(set) var voiceSettings: EngineSettings?
     /// Which model answers (cloud Gemini or local Qwen3.5), and the choices.
     private(set) var brainSettings: EngineSettings?
+    /// What's configured; nil until the backend answers.
+    private(set) var setup: SetupStatus?
+    /// True when nothing can answer yet (no Gemini key, no local model): first run.
+    var needsSetup: Bool { setup.map { !$0.brainReady } ?? false }
     private var silentChunks = 0
     private let micGate = MicGate()
 
@@ -92,6 +96,7 @@ final class AppState {
             backend = .ready
             await refreshConnections()
             await refreshEngineSettings()
+            await refreshSetup()
         } catch {
             backend = .unavailable(error.localizedDescription)
         }
@@ -131,6 +136,42 @@ final class AppState {
               let c = try? JSONDecoder().decode(ConnectionsResponse.self, from: data)
         else { return }
         google = !c.google.configured ? .notConfigured : c.google.connected ? .connected : .disconnected
+    }
+
+    // MARK: Setup (Settings window)
+
+    func refreshSetup() async {
+        guard let data = try? await api("GET", "/setup") else { return }
+        setup = try? JSONDecoder().decode(SetupStatus.self, from: data)
+    }
+
+    /// Each returns an error message to show, or nil on success.
+    func saveGeminiKey(_ key: String) async -> String? {
+        await updateSetup("PUT", "/setup/gemini-key", ["key": key.trimmingCharacters(in: .whitespacesAndNewlines)])
+    }
+
+    func removeGeminiKey() async -> String? {
+        await updateSetup("DELETE", "/setup/gemini-key", nil)
+    }
+
+    func uploadGoogleClient(_ url: URL) async -> String? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return "Couldn't read that file." }
+        let error = await updateSetup("POST", "/setup/google-client", ["json_text": text])
+        await refreshConnections()
+        return error
+    }
+
+    private func updateSetup(_ method: String, _ path: String, _ body: [String: String?]?) async -> String? {
+        do {
+            let data = try await api(method, path, body: body.map { try JSONEncoder().encode($0) })
+            setup = try JSONDecoder().decode(SetupStatus.self, from: data)
+            await refreshEngineSettings()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
     }
 
     // MARK: Voice and brain engines

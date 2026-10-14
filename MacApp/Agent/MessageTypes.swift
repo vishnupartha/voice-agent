@@ -141,6 +141,18 @@ struct EngineSettings: Decodable, Sendable, Equatable {
     let engines: [Engine]
 }
 
+/// What's set up (from the backend's /setup), for the Settings window.
+struct SetupStatus: Decodable, Sendable, Equatable {
+    struct Google: Decodable, Sendable, Equatable { let configured: Bool; let connected: Bool }
+    let geminiKey: Bool
+    let brainReady: Bool
+    let google: Google
+
+    enum CodingKeys: String, CodingKey {
+        case geminiKey = "gemini_key", brainReady = "brain_ready", google
+    }
+}
+
 struct HealthResponse: Decodable, Sendable {
     struct Models: Decodable, Sendable { let stt: Bool; let llm: Bool; let tts: Bool }
     let status: String

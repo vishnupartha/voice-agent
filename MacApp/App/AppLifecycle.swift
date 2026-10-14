@@ -32,7 +32,7 @@ final class BackendManager {
         }
     }
 
-    private let log = Logger(subsystem: "com.vishnupartha.PersonalAgent", category: "backend")
+    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "PersonalAgent", category: "backend")
     private var process: Process?
 
     /// Returns the auth token once the backend is healthy.

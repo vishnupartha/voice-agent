@@ -5,25 +5,28 @@ def test_contents_pairs_tool_results_with_calls_and_keeps_signatures() -> None:
     system, contents = _contents(
         [
             {"role": "system", "content": "be brief"},
-            {"role": "user", "content": "holidays?"},
+            {"role": "user", "content": "what's on today?"},
             {
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
-                    {"function": {"name": "calendar.holidays", "arguments": {}}, "thought_signature": "sig1"},
+                    {
+                        "function": {"name": "calendar.get_events", "arguments": {}},
+                        "thought_signature": "sig1",
+                    },
                     {"function": {"name": "system.get_time", "arguments": {}}},
                 ],
             },
-            {"role": "tool", "content": '{"holidays": []}'},
+            {"role": "tool", "content": '{"events": []}'},
             {"role": "tool", "content": '{"now": "noon"}'},
-            {"role": "assistant", "content": "None this week."},
+            {"role": "assistant", "content": "Nothing today."},
         ]
     )
     assert system == "be brief"
     assert [c["role"] for c in contents] == ["user", "model", "user", "model"]
     assert contents[1]["parts"][0]["thoughtSignature"] == "sig1"
     results = contents[2]["parts"]
-    assert [p["functionResponse"]["name"] for p in results] == ["calendar.holidays", "system.get_time"]
+    assert [p["functionResponse"]["name"] for p in results] == ["calendar.get_events", "system.get_time"]
 
 
 def test_declarations_drop_empty_parameters() -> None:

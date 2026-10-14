@@ -44,9 +44,6 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.2
     llm_top_p: float = 0.8
 
-    # Two-letter US state for state holidays (e.g. "CA" adds Cesar Chavez Day).
-    holiday_state: str | None = "CA"
-
     background_monitoring: bool = True
 
     def model_path(self, repo: str) -> Path:

@@ -92,7 +92,7 @@ uv run ruff check backend && uv run ruff format --check backend
 
 Builds are ad-hoc signed by default. If you rebuild often, sign with your own certificate so the microphone permission survives rebuilds: copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and fill in your team ID.
 
-The app starts the backend itself (`uv run uvicorn backend.api.server:app`, bound to 127.0.0.1:8765), and replaces a backend left running from an earlier session (for example after stopping the app in Xcode). Backend code changes take effect when you quit and reopen the app. Tools that need native macOS APIs (Reminders via EventKit) ask the app over the WebSocket with `ctx.mac(...)`; see `MacApp/System/MacBridge.swift`. Conversations and memories live in SQLite (`backend/db.py`). Settings such as model choices live in `backend/config.py` and can be overridden in a `.env.local` file. [docs/ROADMAP.md](docs/ROADMAP.md) has the architecture decisions and ideas for future work.
+The app starts the backend itself (`uv run uvicorn backend.api.server:app`, bound to 127.0.0.1:8765), and replaces a backend left running from an earlier session (for example after stopping the app in Xcode). Backend code changes take effect when you quit and reopen the app. Tools that need native macOS APIs (Reminders via EventKit) ask the app over the WebSocket with `ctx.mac(...)`; see `MacApp/System/MacBridge.swift`. Conversations and memories live in SQLite (`backend/db.py`). Settings such as model choices live in `backend/config.py` and can be overridden in a `.env.local` file. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how it all fits together, including how to add a tool.
 
 ## License
 

@@ -21,6 +21,7 @@ from backend.agent.sessions import Conversation
 from backend.agent.toolcalls import OPEN, ReplyFilter
 from backend.agent.tools import (
     ApprovalRequest,
+    MacCall,
     Permission,
     ToolCall,
     ToolContext,
@@ -70,10 +71,11 @@ class Agent:
         emit: Emit,
         cancel: threading.Event,
         request_approval: RequestApproval = _deny,
+        mac: MacCall | None = None,
     ) -> None:
         turn_start = len(conversation.messages)
         conversation.add({"role": "user", "content": stamp(user_text)})
-        ctx = ToolContext(emit, request_approval, cancel)
+        ctx = ToolContext(emit, request_approval, cancel, mac)
         await emit("agent.thinking")
 
         visible: list[str] = []

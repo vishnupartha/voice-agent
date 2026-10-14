@@ -72,9 +72,12 @@ rm -rf "$dest/PersonalAgent.app"
 cp -R "$app" "$dest/"
 
 # An ad-hoc signed build gets a new signature each time, and macOS then feeds it
-# silence instead of the microphone. Resetting the permission makes macOS ask again.
+# silence instead of the microphone (and no Reminders or Notes). Resetting the permissions
+# makes macOS ask again.
 if codesign -dv "$dest/PersonalAgent.app" 2>&1 | grep -q "Signature=adhoc"; then
   tccutil reset Microphone "$bundle_id" >/dev/null 2>&1 || true
+  tccutil reset Reminders "$bundle_id" >/dev/null 2>&1 || true
+  tccutil reset AppleEvents "$bundle_id" >/dev/null 2>&1 || true
 fi
 
 open "$dest/PersonalAgent.app"

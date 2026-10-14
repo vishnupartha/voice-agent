@@ -23,6 +23,8 @@ from pydantic import BaseModel, ValidationError
 log = structlog.get_logger(__name__)
 
 Emit = Callable[..., Awaitable[None]]
+# Asks the Mac app to do something only it can (EventKit, ...): method, params -> result.
+MacCall = Callable[[str, dict[str, Any]], Awaitable[Any]]
 
 
 class Permission(StrEnum):
@@ -43,6 +45,10 @@ class ApprovalRequest:
     details: dict[str, Any]
 
 
+async def _no_mac(method: str, params: dict[str, Any]) -> Any:
+    raise ToolError("the Mac app isn't connected")
+
+
 class ToolContext:
     """What a running tool may do besides return data."""
 
@@ -51,10 +57,16 @@ class ToolContext:
         emit: Emit,
         request_approval: Callable[[ApprovalRequest], Awaitable[bool]],
         cancel: Any,
+        mac: MacCall | None = None,
     ) -> None:
         self.emit = emit
         self.request_approval = request_approval
         self.cancel = cancel
+        self._mac = mac or _no_mac
+
+    async def mac(self, method: str, **params: Any) -> Any:
+        """Run `method` in the Mac app; raises ToolError if it fails there."""
+        return await self._mac(method, params)
 
     async def open_url(self, url: str) -> None:
         await self.emit("system.open_url", url=url)
@@ -161,6 +173,10 @@ class ToolRegistry:
         tool = self._tools.get(call.name)
 
         def result(ok: bool, payload: Any, summary: str) -> ToolResult:
+            if not ok and tool is not None and tool.permission != Permission.READ:
+                # Models (Flash-Lite especially) have reported a failed action as
+                # done; spell out that it wasn't.
+                payload = {**payload, "done": False, "tell_user": "This failed; nothing was changed."}
             content = payload if isinstance(payload, str) else orjson.dumps(payload, default=str).decode()
             if ok and tool is not None and tool.untrusted:
                 content = (

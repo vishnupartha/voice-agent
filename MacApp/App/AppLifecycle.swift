@@ -37,6 +37,11 @@ final class BackendManager {
 
     /// Returns the auth token once the backend is healthy.
     func ensureRunning() async throws -> String {
+        if process?.isRunning != true, await Self.health() != nil {
+            // Not ours: left over from an earlier run (Xcode's Stop doesn't shut it
+            // down), so it may be running older code. Replace it.
+            try await replaceStale()
+        }
         if await Self.health() == nil {
             try launch()
             try await waitForHealth(timeout: .seconds(60))
@@ -57,6 +62,22 @@ final class BackendManager {
               (response as? HTTPURLResponse)?.statusCode == 200
         else { return nil }
         return try? JSONDecoder().decode(HealthResponse.self, from: data)
+    }
+
+    private func replaceStale() async throws {
+        log.info("stopping a backend from an earlier run")
+        var request = URLRequest(url: BackendConfig.httpURL(path: "/shutdown"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 2
+        request.setValue(try readToken(), forHTTPHeaderField: BackendConfig.tokenHeader)
+        _ = try? await URLSession.shared.data(for: request)
+        let deadline = ContinuousClock.now + .seconds(10)
+        while ContinuousClock.now < deadline {
+            if await Self.health() == nil { return }
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        throw LaunchError.unhealthy(
+            "an older backend is still running on port \(BackendConfig.port); quit it and try again")
     }
 
     private func readToken() throws -> String {

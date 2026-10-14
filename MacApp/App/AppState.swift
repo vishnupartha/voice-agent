@@ -72,6 +72,7 @@ final class AppState {
     private let backendManager = BackendManager()
     private let client = AgentClient()
     private let audio = AudioSession()
+    private let bridge = MacBridge()
     /// Kept across launches; the backend resumes it if it was used in the last few minutes.
     private var conversationID = UserDefaults.standard.string(forKey: "conversationID") {
         didSet { UserDefaults.standard.set(conversationID, forKey: "conversationID") }
@@ -81,6 +82,7 @@ final class AppState {
     init() {
         client.onEvent = { [weak self] in self?.handle($0) }
         client.onAudio = { [weak self] in self?.audio.playback.enqueue($0) }
+        client.onBridgeRequest = { [weak self] in self?.answerBridge($0) }
         audio.playback.onFinished = { [weak self] in self?.speechFinished() }
         client.onDisconnect = { [weak self] error in
             guard let self else { return }
@@ -130,6 +132,22 @@ final class AppState {
         guard let approval = pendingApproval else { return }
         pendingApproval = nil
         Task { await sendOrReport(.approvalResponse(approvalID: approval.id, approved: approved)) }
+    }
+
+    // MARK: Bridge
+
+    private func answerBridge(_ req: BridgeRequest) {
+        Task {
+            let reply: ClientMessage
+            do {
+                let result = try await bridge.handle(req.method, req.params)
+                reply = .bridgeResponse(requestID: req.requestID, ok: true, result: result, error: nil)
+            } catch {
+                reply = .bridgeResponse(
+                    requestID: req.requestID, ok: false, result: nil, error: error.localizedDescription)
+            }
+            await sendOrReport(reply)
+        }
     }
 
     // MARK: Google

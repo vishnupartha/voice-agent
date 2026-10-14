@@ -12,6 +12,7 @@ final class AgentClient {
     var onEvent: ((AgentEvent) -> Void)?
     var onAudio: ((Data) -> Void)?
     var onDisconnect: ((Error?) -> Void)?
+    var onBridgeRequest: ((BridgeRequest) -> Void)?
 
     /// Microphone chunks yielded here are sent in order. Safe to use from the
     /// audio thread.
@@ -30,13 +31,19 @@ final class AgentClient {
         readTask = Task { [weak self] in
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let plainDecoder = JSONDecoder()
             do {
                 for try await frame in socket.frames() {
                     switch frame {
                     case let .binary(pcm):
                         self?.onAudio?(pcm)
                     case let .text(s):
-                        if let event = try? decoder.decode(AgentEvent.self, from: Data(s.utf8)) {
+                        guard let event = try? decoder.decode(AgentEvent.self, from: Data(s.utf8)) else { break }
+                        if event.type == .bridgeRequest {
+                            if let req = try? plainDecoder.decode(BridgeRequest.self, from: Data(s.utf8)) {
+                                self?.onBridgeRequest?(req)
+                            }
+                        } else {
                             self?.onEvent?(event)
                         }
                     }

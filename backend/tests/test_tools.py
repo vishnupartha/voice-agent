@@ -13,13 +13,22 @@ from pydantic import BaseModel
 
 from backend.agent.agent import Agent
 from backend.agent.toolcalls import ReplyFilter
-from backend.agent.tools import ApprovalRequest, Permission, Tool, ToolCall, ToolContext, ToolRegistry
+from backend.agent.tools import (
+    ApprovalRequest,
+    Permission,
+    Tool,
+    ToolCall,
+    ToolContext,
+    ToolError,
+    ToolRegistry,
+)
 from backend.api.auth import TOKEN_HEADER
 from backend.api.server import app
 from backend.api.websocket import spoken_decision
 from backend.config import Settings
 from backend.tools.calendar import free_slots
 from backend.tools.gmail import body_text
+from backend.tools.reminders import reminders_tools
 from backend.voice.llm import GenerationStats, Message
 
 
@@ -237,6 +246,30 @@ def test_approval_for_other_id_does_nothing_then_cancel_declines(client) -> None
     assert log == ["send:d1:False"]
 
 
+def test_reminder_goes_through_the_mac_bridge(client) -> None:
+    reg = ToolRegistry()
+    reg.register(*reminders_tools())
+    llm = ScriptedLLM(call_markup("reminders.create", title="Call mom", due="2026-10-15T18:00"), "Done.")
+    app.state.services.agent = Agent(llm, reg)
+    with client.websocket_connect("/ws/chat", headers={TOKEN_HEADER: app.state.token}) as ws:
+        ws.send_text(orjson.dumps({"type": "session.start", "session_id": "s"}).decode())
+        recv_until(ws, "session.ready")
+        ws.send_text(orjson.dumps({"type": "user.message", "text": "remind me"}).decode())
+        req = recv_until(ws, "bridge.request")[-1]
+        assert req["method"] == "reminders.create" and req["params"]["timed"] is True
+        due = req["params"]["due"]
+        assert datetime.fromtimestamp(due).strftime("%Y-%m-%d %H:%M") == "2026-10-15 18:00"
+        result = {"id": "r1", "title": "Call mom", "list": "Reminders", "due": due, "timed": True}
+        ws.send_text(
+            orjson.dumps(
+                {"type": "bridge.response", "request_id": req["request_id"], "ok": True, "result": result}
+            ).decode()
+        )
+        recv_until(ws, "assistant.text.final")
+    tool_result = orjson.loads(llm.seen[-1][-1]["content"])
+    assert tool_result["status"] == "created" and tool_result["due"] == "Thu Oct 15, 6:00 PM"
+
+
 @pytest.mark.parametrize(
     ("text", "decision"),
     [
@@ -278,3 +311,71 @@ def test_body_text_prefers_plain_and_drops_quotes() -> None:
     }
     assert body_text(payload) == "Can we meet Thursday?"
     assert body_text({"mimeType": "text/html", **part("text/html", "<p>Hi <b>there</b></p>")}) == "Hi \nthere"
+
+
+async def test_failed_action_says_it_was_not_done() -> None:
+    async def broken(a: IdArgs, ctx: ToolContext) -> dict:
+        raise ToolError("the Mac app didn't answer")
+
+    reg = ToolRegistry()
+    reg.register(
+        Tool("test.act", "Act.", IdArgs, broken, Permission.WRITE),
+        Tool("test.read", "Read.", IdArgs, broken, Permission.READ),
+    )
+    ctx = ToolContext(lambda *a, **k: asyncio.sleep(0), lambda r: asyncio.sleep(0, False), threading.Event())
+    act = orjson.loads((await reg.run(ToolCall("test.act", {"draft_id": "1"}), ctx)).content)
+    assert act["done"] is False and act["error"] == "the Mac app didn't answer"
+    read = orjson.loads((await reg.run(ToolCall("test.read", {"draft_id": "1"}), ctx)).content)
+    assert "done" not in read
+
+
+async def test_users_own_notes_need_approval(monkeypatch) -> None:
+    from backend.tools import notes
+
+    calls: list[dict] = []
+    note = {"id": "n1", "title": "Groceries", "folder": "Notes", "modified": "2026-10-14T19:00:00Z"}
+
+    async def fake_run(name: str, **args):
+        calls.append({"name": name, **args})
+        if name in ("read", "append") and not args["anywhere"]:
+            raise notes.NotShared("Groceries")
+        return [note] if name == "search" else note
+
+    monkeypatch.setattr(notes, "run_script", fake_run)
+    asked: list[str] = []
+
+    def ctx_answering(answer: bool) -> ToolContext:
+        async def approve(req: ApprovalRequest) -> bool:
+            asked.append(req.title)
+            return answer
+
+        return ToolContext(lambda *a, **k: asyncio.sleep(0), approve, threading.Event())
+
+    reg = ToolRegistry()
+    reg.register(*notes.notes_tools())
+
+    # Declined: the note is never read.
+    r = await reg.run(ToolCall("notes.read", {"id": "n1"}), ctx_answering(False))
+    assert "not allowed" in r.content and [c["anywhere"] for c in calls] == [False]
+
+    # Approved: read again with access to the user's notes.
+    calls.clear()
+    await reg.run(ToolCall("notes.read", {"id": "n1"}), ctx_answering(True))
+    assert [c["anywhere"] for c in calls] == [False, True]
+
+    # A note found by an approved search is readable without asking again...
+    asked.clear()
+    await reg.run(ToolCall("notes.search", {"query": "milk", "everywhere": "true"}), ctx_answering(True))
+    calls.clear()
+    await reg.run(ToolCall("notes.read", {"id": "n1"}), ctx_answering(False))
+    assert asked == ["Search Your Notes"] and calls[0]["anywhere"] is True
+
+    # ...but changing it still asks.
+    r = await reg.run(ToolCall("notes.append", {"id": "n1", "text": "milk"}), ctx_answering(False))
+    assert asked == ["Search Your Notes", "Add to Your Note"] and "not allowed" in r.content
+
+
+def test_note_html_is_escaped() -> None:
+    from backend.tools.notes import to_html
+
+    assert to_html("a <b>\n\nc") == "<div>a &lt;b&gt;</div><div><br></div><div>c</div>"

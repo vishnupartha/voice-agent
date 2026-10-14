@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import signal
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from html import escape
@@ -26,6 +28,8 @@ from backend.memory.store import MemoryStore
 from backend.tools.calendar import Calendar, calendar_tools
 from backend.tools.gmail import Gmail, gmail_tools
 from backend.tools.memory import memory_tools
+from backend.tools.notes import notes_tools
+from backend.tools.reminders import reminders_tools
 from backend.tools.system import system_tools
 from backend.tools.web import web_tools
 from backend.voice.gemini import GeminiLLM
@@ -92,6 +96,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         *calendar_tools(Calendar(google, settings.data_dir / "preferences.json")),
         *web_tools(),
         *memory_tools(memories),
+        *reminders_tools(),
+        *notes_tools(),
     )
     app.state.services = Services(
         agent=Agent(app.state.llm, tools, profile=google.profile, memories=memories.all),
@@ -120,6 +126,14 @@ async def health() -> dict[str, Any]:
         "database": getattr(state, "db", None) is not None,
         "scheduler": False,
     }
+
+
+@app.post("/shutdown", dependencies=[Depends(require_token)])
+async def shutdown() -> dict[str, bool]:
+    """Stop gracefully. The app calls this on a backend left over from an earlier
+    run (e.g. when Xcode stopped the app), which may be running older code."""
+    asyncio.get_running_loop().call_later(0.1, os.kill, os.getpid(), signal.SIGTERM)
+    return {"ok": True}
 
 
 @app.get("/models", dependencies=[Depends(require_token)])

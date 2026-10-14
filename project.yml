@@ -25,6 +25,8 @@ targets:
         LSUIElement: true
         LSMinimumSystemVersion: "26.0"
         NSMicrophoneUsageDescription: Personal Agent listens to your voice when you invoke it. Audio is processed locally on this Mac and never stored.
+        NSRemindersFullAccessUsageDescription: Personal Agent adds, lists and completes reminders when you ask it to.
+        NSAppleEventsUsageDescription: Personal Agent uses Notes to keep its own notes, and reads yours only when you approve.
         NSLocationWhenInUseUsageDescription: Personal Agent uses your approximate location to find nearby events and places.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

@@ -91,6 +91,11 @@ Pick anything here; open an issue first for the bigger ones.
 - [ ] **Conversation summarization** (spec §78): summarize old turns instead of keeping the last 40 messages.
 - [ ] **A test set of real requests** (like the canned-inbox run used during development), run against the real model after every prompt or tool change to catch regressions.
 
+### Mac apps
+- [x] **Mac bridge**: `bridge.request` / `bridge.response` over the WebSocket, for things only the app can do (`ctx.mac(...)` in a tool, `MacBridge` in Swift).
+- [x] **Reminders** through EventKit over the bridge: list, create (with an alert when timed), complete; delete asks first.
+- [x] **Notes** through JavaScript for Automation (`osascript`): search, read, create, append. The assistant writes in its own "Personal Agent" folder; the user's other notes need approval each time (a search's results stay readable for 10 minutes; appending always asks).
+
 ### UI
 - [ ] **Settings window** (spec §20): tabs for General, Connections, Models, Permissions, Memory.
 - [ ] **Onboarding** (spec §93): mic, notifications and location permissions, the model download, Google connect, and "what should I call you".

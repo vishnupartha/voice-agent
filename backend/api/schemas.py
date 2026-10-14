@@ -40,8 +40,24 @@ class ApprovalResponse(BaseModel):
     approved: bool
 
 
+class BridgeResponse(BaseModel):
+    """The Mac app's answer to a bridge.request."""
+
+    type: Literal["bridge.response"]
+    request_id: str
+    ok: bool
+    result: Any = None
+    error: str | None = None
+
+
 ClientMessage = Annotated[
-    SessionStart | UserMessage | AudioStart | AudioStop | ConversationCancel | ApprovalResponse,
+    SessionStart
+    | UserMessage
+    | AudioStart
+    | AudioStop
+    | ConversationCancel
+    | ApprovalResponse
+    | BridgeResponse,
     Field(discriminator="type"),
 ]
 client_message_adapter: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
@@ -65,6 +81,7 @@ EventType = Literal[
     "approval.resolved",
     "draft.updated",
     "system.open_url",
+    "bridge.request",
     "error",
 ]
 

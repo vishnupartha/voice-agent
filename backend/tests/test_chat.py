@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import signal
 import threading
+import time
 from collections.abc import AsyncIterator, Iterator
 
 import orjson
@@ -123,3 +125,12 @@ def test_bad_message(client: TestClient) -> None:
     with client.websocket_connect("/ws/chat", headers={TOKEN_HEADER: app.state.token}) as ws:
         ws.send_text('{"type": "nope"}')
         assert orjson.loads(ws.receive_text())["code"] == "bad_message"
+
+
+def test_shutdown_needs_token_and_signals_self(client: TestClient, monkeypatch) -> None:
+    killed: list[int] = []
+    monkeypatch.setattr("backend.api.server.os.kill", lambda pid, sig: killed.append(sig))
+    assert client.post("/shutdown").status_code == 401
+    assert client.post("/shutdown", headers={TOKEN_HEADER: app.state.token}).json() == {"ok": True}
+    time.sleep(0.3)  # the signal is sent just after the response
+    assert killed == [signal.SIGTERM]

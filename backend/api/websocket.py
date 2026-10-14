@@ -17,12 +17,13 @@ from pydantic import ValidationError
 
 from backend.agent.agent import Agent
 from backend.agent.sessions import Conversation, ConversationStore
-from backend.agent.tools import ApprovalRequest
+from backend.agent.tools import ApprovalRequest, ToolError
 from backend.api.auth import websocket_authorized
 from backend.api.schemas import (
     ApprovalResponse,
     AudioStart,
     AudioStop,
+    BridgeResponse,
     ConversationCancel,
     EventType,
     SessionStart,
@@ -42,6 +43,8 @@ PARTIAL_EVERY_S = 0.5
 BARGE_IN_MIN_SPEECH_MS = 400
 NORMAL_MIN_SPEECH_MS = 200
 APPROVAL_TIMEOUT_S = 120
+# Long enough for a first-use permission prompt (e.g. Reminders access) to be answered.
+BRIDGE_TIMEOUT_S = 60
 
 # Spoken answers to a pending approval (spec §19): "Send it." / "No, wait."
 _YES = re.compile(
@@ -102,6 +105,8 @@ class AgentSession:
         self._speaking_until = 0.0
         # approvals awaiting the user's decision, by approval_id
         self._approvals: dict[str, asyncio.Future[bool]] = {}
+        # requests to the Mac app awaiting its bridge.response, by request_id
+        self._bridge: dict[str, asyncio.Future[BridgeResponse]] = {}
 
     # ---- sending ----
 
@@ -165,6 +170,9 @@ class AgentSession:
             await self.stop_listening(finalize=True)
         elif isinstance(msg, ApprovalResponse):
             self._resolve_approval(msg.approval_id, msg.approved)
+        elif isinstance(msg, BridgeResponse):
+            if (fut := self._bridge.get(msg.request_id)) is not None and not fut.done():
+                fut.set_result(msg)
 
     # ---- approvals (spec §19, §72) ----
 
@@ -202,6 +210,32 @@ class AgentSession:
             return False  # unknown or expired: nothing happens
         fut.set_result(approved)
         return True
+
+    # ---- Mac app bridge ----
+
+    async def call_mac(self, method: str, params: dict[str, Any]) -> Any:
+        """Ask the Mac app to run `method` (EventKit and other things only it
+        can do) and wait for its answer, like an approval: until it replies,
+        the turn is cancelled, or BRIDGE_TIMEOUT_S passes."""
+        request_id = uuid.uuid4().hex
+        fut: asyncio.Future[BridgeResponse] = asyncio.get_running_loop().create_future()
+        self._bridge[request_id] = fut
+        cancel = self._cancel
+        try:
+            await self.emit("bridge.request", request_id=request_id, method=method, params=params)
+            deadline = time.monotonic() + BRIDGE_TIMEOUT_S
+            while not fut.done() and not cancel.is_set() and not self._closed:
+                if time.monotonic() > deadline:
+                    raise ToolError("the Mac app didn't answer")
+                await asyncio.wait([fut], timeout=0.2)
+            if not fut.done():
+                raise ToolError("cancelled")
+        finally:
+            self._bridge.pop(request_id, None)
+        resp = fut.result()
+        if not resp.ok:
+            raise ToolError(resp.error or "the Mac app couldn't do that")
+        return resp.result
 
     # ---- voice input ----
 
@@ -345,7 +379,9 @@ class AgentSession:
             await self.emit(type, **data)
 
         try:
-            await self.s.agent.run_turn(conversation, text, emit, cancel, self.request_approval)
+            await self.s.agent.run_turn(
+                conversation, text, emit, cancel, self.request_approval, mac=self.call_mac
+            )
             if speech is not None and not cancel.is_set():
                 await speech.finish()
         except FileNotFoundError as e:

@@ -9,10 +9,12 @@ enum ClientMessage: Encodable, Sendable {
     case audioStop
     case cancel
     case approvalResponse(approvalID: String, approved: Bool)
+    case bridgeResponse(requestID: String, ok: Bool, result: JSONValue?, error: String?)
 
     private enum CodingKeys: String, CodingKey {
         case type, sessionID = "session_id", conversationID = "conversation_id", text
         case approvalID = "approval_id", approved
+        case requestID = "request_id", ok, result, error
     }
 
     func encode(to encoder: Encoder) throws {
@@ -35,6 +37,12 @@ enum ClientMessage: Encodable, Sendable {
             try c.encode("approval.response", forKey: .type)
             try c.encode(approvalID, forKey: .approvalID)
             try c.encode(approved, forKey: .approved)
+        case let .bridgeResponse(requestID, ok, result, error):
+            try c.encode("bridge.response", forKey: .type)
+            try c.encode(requestID, forKey: .requestID)
+            try c.encode(ok, forKey: .ok)
+            try c.encodeIfPresent(result, forKey: .result)
+            try c.encodeIfPresent(error, forKey: .error)
         }
     }
 }
@@ -83,6 +91,7 @@ struct AgentEvent: Decodable, Sendable {
         case approvalResolved = "approval.resolved"
         case draftUpdated = "draft.updated"
         case openURL = "system.open_url"
+        case bridgeRequest = "bridge.request"
         case error
         case unknown
 
@@ -158,4 +167,63 @@ struct HealthResponse: Decodable, Sendable {
     let status: String
     let version: String
     let models: Models
+}
+
+/// The backend asking the app to do something only it can (EventKit, ...).
+/// Decoded without snake-case conversion so `params` keys arrive as sent.
+struct BridgeRequest: Decodable, Sendable {
+    let requestID: String
+    let method: String
+    let params: JSONValue
+
+    enum CodingKeys: String, CodingKey {
+        case requestID = "request_id", method, params
+    }
+}
+
+/// Any JSON value, for bridge params and results whose shape depends on the method.
+enum JSONValue: Codable, Sendable, Equatable {
+    case null
+    case bool(Bool)
+    case number(Double)
+    case string(String)
+    case array([JSONValue])
+    case object([String: JSONValue])
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() {
+            self = .null
+        } else if let b = try? c.decode(Bool.self) {
+            self = .bool(b)
+        } else if let n = try? c.decode(Double.self) {
+            self = .number(n)
+        } else if let s = try? c.decode(String.self) {
+            self = .string(s)
+        } else if let a = try? c.decode([JSONValue].self) {
+            self = .array(a)
+        } else {
+            self = .object(try c.decode([String: JSONValue].self))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .null: try c.encodeNil()
+        case let .bool(b): try c.encode(b)
+        case let .number(n): try c.encode(n)
+        case let .string(s): try c.encode(s)
+        case let .array(a): try c.encode(a)
+        case let .object(o): try c.encode(o)
+        }
+    }
+
+    subscript(key: String) -> JSONValue? {
+        if case let .object(o) = self { o[key] } else { nil }
+    }
+
+    var string: String? { if case let .string(s) = self { s } else { nil } }
+    var number: Double? { if case let .number(n) = self { n } else { nil } }
+    var bool: Bool? { if case let .bool(b) = self { b } else { nil } }
 }

@@ -17,7 +17,6 @@ class Settings(BaseSettings):
 
     data_dir: Path = APP_SUPPORT
     model_dir: Path = APP_SUPPORT / "models"
-    database_path: Path = APP_SUPPORT / "database.sqlite"
     log_dir: Path = LOG_DIR
 
     # Hugging Face repos; weights live in model_dir/<repo basename>.

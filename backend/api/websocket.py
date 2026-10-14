@@ -145,6 +145,8 @@ class AgentSession:
         if isinstance(msg, SessionStart):
             self.session_id = msg.session_id
             self.conversation = self.s.conversations.get_or_create(msg.conversation_id)
+            if self.conversation.idle:
+                self.conversation = self.s.conversations.new()
             await self.emit("session.ready", conversation_id=self.conversation.id)
         elif self.conversation is None:
             await self.emit("error", code="no_session", message="send session.start first")
@@ -153,6 +155,11 @@ class AgentSession:
         elif isinstance(msg, ConversationCancel):
             await self.cancel_turn()
         elif isinstance(msg, AudioStart):
+            if self.conversation.idle and not self._assistant_active():
+                # Opening the mic after a long pause starts afresh; the client
+                # clears its transcript when the conversation ID changes.
+                self.conversation = self.s.conversations.new()
+                await self.emit("session.ready", conversation_id=self.conversation.id)
             await self.start_listening()
         elif isinstance(msg, AudioStop):
             await self.stop_listening(finalize=True)

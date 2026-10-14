@@ -86,8 +86,8 @@ Pick anything here; open an issue first for the bigger ones.
 - [ ] **Reconnect prompt.** When the token expires, show a clear "Reconnect Google" banner instead of a tool error.
 
 ### Agent brain (rest of Stage 2)
-- [ ] **SQLite persistence** (spec §47): conversations survive restarts, plus a history sidebar.
-- [ ] **Memory** (spec §48–50): "remember that…", "what do you know about me?", "forget that"; preferences fed into answers.
+- [~] **SQLite persistence** (spec §47): conversations survive restarts (done; opening the mic after 5 minutes idle starts a new one). *Left:* history sidebar.
+- [x] **Memory** (spec §48–50): "remember that…", "what do you know about me?", "forget that". Explicit only; every memory is listed in the system prompt (no retrieval yet).
 - [ ] **Conversation summarization** (spec §78): summarize old turns instead of keeping the last 40 messages.
 - [ ] **A test set of real requests** (like the canned-inbox run used during development), run against the real model after every prompt or tool change to catch regressions.
 
@@ -108,6 +108,6 @@ Pick anything here; open an issue first for the bigger ones.
 - [ ] Packaging: a standalone `.app` with a bundled backend; launch at login.
 
 ### Known limitations
-- Conversations live in memory only; quitting the app forgets them.
+- The dashboard doesn't show earlier messages after a restart, though the assistant still has them.
 - Gmail and Calendar are live API calls (no cache), so they need internet.
 - The Silero VAD pulls in PyTorch (large). Switch to its ONNX version before packaging.

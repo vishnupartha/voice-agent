@@ -72,7 +72,10 @@ final class AppState {
     private let backendManager = BackendManager()
     private let client = AgentClient()
     private let audio = AudioSession()
-    private var conversationID: String?
+    /// Kept across launches; the backend resumes it if it was used in the last few minutes.
+    private var conversationID = UserDefaults.standard.string(forKey: "conversationID") {
+        didSet { UserDefaults.standard.set(conversationID, forKey: "conversationID") }
+    }
     private var token: String?
 
     init() {
@@ -366,6 +369,9 @@ final class AppState {
     private func handle(_ event: AgentEvent) {
         switch event.type {
         case .sessionReady:
+            // A different ID means the backend started a new conversation
+            // (the mic was opened after a long pause), so clear the transcript.
+            if conversationID != nil, event.conversationId != conversationID { turns = [] }
             conversationID = event.conversationId
         case .speechStarted:
             if event.interrupted == true { audio.playback.stop() }

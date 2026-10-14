@@ -54,11 +54,14 @@ class Agent:
         llm: LLMProvider,
         tools: ToolRegistry | None = None,
         profile: Callable[[], dict[str, str]] = dict,
+        memories: Callable[[], list[tuple[int, str]]] = list,
     ) -> None:
         self.llm = llm
         self.tools = tools or ToolRegistry()
         # Who the user is (name, email), for signing drafts and the like.
         self.profile = profile
+        # (id, text) facts the user asked to be remembered.
+        self.memories = memories
 
     async def run_turn(
         self,
@@ -199,7 +202,7 @@ class Agent:
         return [{"role": "system", "content": self._system()}, *history]
 
     def _system(self) -> str:
-        return system_prompt(tools=len(self.tools) > 0, profile=self.profile())
+        return system_prompt(tools=len(self.tools) > 0, profile=self.profile(), memories=self.memories())
 
     async def _run_calls(self, calls: list[ToolCall], ctx: ToolContext, emit: Emit) -> list[ToolResult]:
         async def run(call: ToolCall) -> ToolResult:

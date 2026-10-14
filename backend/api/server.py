@@ -19,10 +19,13 @@ from backend.api.auth import load_or_create_token, require_token
 from backend.api.setup import router as setup_router
 from backend.api.websocket import Services, agent_endpoint
 from backend.config import get_settings
+from backend.db import connect as connect_db
 from backend.integrations.google_auth import GoogleAuth, GoogleNotConnected
 from backend.log_setup import configure_logging
+from backend.memory.store import MemoryStore
 from backend.tools.calendar import Calendar, calendar_tools
 from backend.tools.gmail import Gmail, gmail_tools
+from backend.tools.memory import memory_tools
 from backend.tools.system import system_tools
 from backend.tools.web import web_tools
 from backend.voice.gemini import GeminiLLM
@@ -79,21 +82,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         profile_path=settings.data_dir / "profile.json",
     )
     app.state.google = google
+    db = connect_db(settings.data_dir / "database.sqlite")
+    app.state.db = db
+    memories = MemoryStore(db)
     tools = ToolRegistry()
     tools.register(
         *system_tools(),
         *gmail_tools(Gmail(google)),
         *calendar_tools(Calendar(google, settings.data_dir / "preferences.json")),
         *web_tools(),
+        *memory_tools(memories),
     )
     app.state.services = Services(
-        agent=Agent(app.state.llm, tools, profile=google.profile),
-        conversations=ConversationStore(),
+        agent=Agent(app.state.llm, tools, profile=google.profile, memories=memories.all),
+        conversations=ConversationStore(db),
         stt=app.state.stt,
         tts=app.state.tts,
     )
     yield
     worker.shutdown()
+    db.close()
 
 
 app = FastAPI(title="Personal Agent", version=__version__, lifespan=lifespan)
@@ -109,7 +117,7 @@ async def health() -> dict[str, Any]:
         "status": "ok",
         "version": __version__,
         "models": {"stt": state.stt.loaded, "llm": state.llm.loaded, "tts": state.tts.loaded},
-        "database": False,
+        "database": getattr(state, "db", None) is not None,
         "scheduler": False,
     }
 

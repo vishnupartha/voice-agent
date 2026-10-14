@@ -3,7 +3,7 @@
 Re-running resumes interrupted downloads and skips complete ones. Hugging Face
 verifies file hashes as it downloads.
 
-    uv run python scripts/download_models.py [stt|llm|tts ...]
+    uv run python scripts/download_models.py [stt|llm|tts|kokoro ...]
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ def main(which: list[str]) -> None:
         "stt": settings.stt_repo,
         "llm": settings.llm_repo,
         "tts": settings.tts_repo,
+        "kokoro": settings.kokoro_repo,
     }
     for kind in which or list(repos):
         repo = repos[kind]

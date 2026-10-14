@@ -25,11 +25,27 @@ class Settings(BaseSettings):
     llm_repo: str = "mlx-community/Qwen3.5-9B-4bit"
     tts_repo: str = "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-6bit"
     tts_voice: str = "ryan"
+    kokoro_repo: str = "mlx-community/Kokoro-82M-bf16"
+    kokoro_voice: str = "af_heart"
+    # Voice engine until one is picked in the app: "kokoro" or "qwen".
+    tts_engine: str = "kokoro"
+
+    # The agent's brain: "gemini" (needs a key: scripts/gemini_setup.py) or "local".
+    llm_provider: str = "gemini"
+    gemini_model: str = "gemini-flash-latest"
+    # Used when the main model is overloaded (common on the free tier).
+    gemini_fallback_model: str = "gemini-flash-lite-latest"
+    gemini_temperature: float = 0.5
+    # "low" or "high"; Flash rejects "minimal".
+    gemini_thinking: str = "low"
 
     llm_max_tokens: int = 1024
     # Low temperature: at 0.7 the model skipped tool calls ~30% of the time.
     llm_temperature: float = 0.2
     llm_top_p: float = 0.8
+
+    # Two-letter US state for state holidays (e.g. "CA" adds Cesar Chavez Day).
+    holiday_state: str | None = "CA"
 
     background_monitoring: bool = True
 
@@ -47,6 +63,10 @@ class Settings(BaseSettings):
     @property
     def tts_model_path(self) -> Path:
         return self.model_path(self.tts_repo)
+
+    @property
+    def kokoro_model_path(self) -> Path:
+        return self.model_path(self.kokoro_repo)
 
 
 @lru_cache

@@ -11,7 +11,7 @@ import asyncio
 import re
 import threading
 import time
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from contextlib import aclosing
 from pathlib import Path
 from typing import Any, Protocol
@@ -19,6 +19,7 @@ from typing import Any, Protocol
 import numpy as np
 import structlog
 
+from backend.preferences import Switchable
 from backend.voice.mlx_runtime import MLXWorker
 from backend.voice.normalize import spoken_form
 from backend.voice.vad import float_to_pcm16
@@ -79,12 +80,98 @@ class QwenTTS:
 
         def make() -> Any:
             return self._model.generate(
-                text=text, voice=self.voice, lang_code="english", stream=True, streaming_interval=0.32
-            )
+                text=text, voice=self.voice, lang_code="english", stream=True, streaming_interval=0.32,
+                # The library's defaults (temperature 0.9, top_p 1.0, 4096 tokens) occasionally
+                # sample stray vocalizations like a shout; sample more conservatively and cap the
+                # length so a bad sample can't run on. 12 codec tokens per second of speech is
+                # about one per character, so twice the text length leaves ample room.
+                temperature=0.5, top_p=0.9, max_tokens=48 + 2 * len(text),
+            )  # fmt: skip
 
         async with aclosing(self._worker.iterate(make)) as chunks:
             async for result in chunks:
                 yield np.asarray(result.audio, dtype=np.float32)
+
+
+class KokoroTTS:
+    """Kokoro-82M: small and deterministic (no sampling), so it never ad-libs
+    laughs or drawn-out words the way an autoregressive TTS can."""
+
+    def __init__(self, model_path: Path, worker: MLXWorker, voice: str) -> None:
+        self.name = model_path.name
+        self.voice = voice
+        self.sample_rate = 24_000
+        self._path = model_path
+        self._worker = worker
+        self._model: Any = None
+        self._load_lock = asyncio.Lock()
+
+    @property
+    def loaded(self) -> bool:
+        return self._model is not None
+
+    @property
+    def available(self) -> bool:
+        return (self._path / "config.json").exists()
+
+    async def load(self) -> None:
+        async with self._load_lock:
+            if self.loaded:
+                return
+            if not self.available:
+                raise FileNotFoundError(f"TTS weights not found at {self._path}")
+            t0 = time.perf_counter()
+            self._model = await self._worker.run(self._load_sync)
+            self.sample_rate = int(self._model.sample_rate)
+            # Builds the text pipeline and loads the voice now, not mid-reply.
+            await self._worker.run(lambda: list(self._generate("Ready.")))
+            log.info("tts.loaded", model=self.name, seconds=round(time.perf_counter() - t0, 2))
+
+    def _load_sync(self) -> Any:
+        from mlx_audio.tts.utils import load_model
+
+        return load_model(self._path)
+
+    def _generate(self, text: str) -> Iterator[np.ndarray]:
+        # Kokoro's audio is a lazy MLX array; convert it here, on the worker
+        # thread, since MLX can't evaluate it from another thread.
+        for result in self._model.generate(text=text, voice=self.voice, speed=1.0, lang_code="a"):
+            yield np.asarray(result.audio, dtype=np.float32).reshape(-1)
+
+    async def synthesize(self, text: str) -> AsyncIterator[np.ndarray]:
+        await self.load()
+        async with aclosing(self._worker.iterate(lambda: self._generate(text))) as chunks:
+            async for chunk in chunks:
+                yield chunk
+
+
+class SwitchableTTS(Switchable[TTSProvider]):
+    """The active voice engine, chosen in the app and remembered across restarts."""
+
+    def __init__(self, engines: dict[str, TTSProvider], preferences: Path, default: str) -> None:
+        super().__init__(engines, preferences, "voice_engine", default)
+
+    @property
+    def name(self) -> str:
+        return self.current.name
+
+    @property
+    def sample_rate(self) -> int:
+        return self.current.sample_rate
+
+    @property
+    def loaded(self) -> bool:
+        return self.current.loaded
+
+    @property
+    def available(self) -> bool:
+        return bool(getattr(self.current, "available", True))
+
+    async def load(self) -> None:
+        await self.current.load()
+
+    def synthesize(self, text: str) -> AsyncIterator[np.ndarray]:
+        return self.current.synthesize(text)
 
 
 # ---- streaming text -> speech ----

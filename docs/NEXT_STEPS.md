@@ -29,6 +29,14 @@ Google only gives apps access to your mail through an OAuth client in a Google C
 
 **If sign-in fails with `redirect_uri_mismatch`:** make sure the client type is *Desktop app*, not *Web application*. Desktop clients accept the app's local callback (`http://127.0.0.1:8765/auth/google/callback`) without configuring it.
 
+### 1b. Gemini API key (the assistant's brain)
+
+Create a free key at <https://aistudio.google.com> → Get API key, copy it, then:
+```bash
+pbpaste | uv run python -m scripts.gemini_setup
+```
+Restart the app. Without a key it falls back to the local Qwen3.5-9B model.
+
 ### 2. Try Gmail and Calendar by voice
 
 Press **Option+Space** and try these in order. They form one conversation:

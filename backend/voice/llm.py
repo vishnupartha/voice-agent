@@ -18,12 +18,13 @@ import threading
 import time
 from collections.abc import AsyncIterator
 from contextlib import aclosing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
 import structlog
 
+from backend.preferences import Switchable
 from backend.voice.mlx_runtime import MLXWorker
 
 log = structlog.get_logger(__name__)
@@ -50,6 +51,9 @@ class GenerationStats:
     cancelled: bool = False
     prompt_tokens: int = 0
     cached_tokens: int = 0
+    # Structured tool calls, from providers that return them outside the text
+    # (Gemini): {"name", "arguments", "thought_signature"}.
+    tool_calls: list[dict[str, Any]] = field(default_factory=list)
 
 
 class LLMProvider(Protocol):
@@ -233,3 +237,46 @@ class MLXLLM:
                         yield resp.text
         finally:
             stats.total_s = time.perf_counter() - t0
+
+
+class SwitchableLLM(Switchable[LLMProvider]):
+    """The active brain (cloud Gemini or the local model), chosen in the app
+    and remembered across restarts."""
+
+    def __init__(self, engines: dict[str, LLMProvider], preferences: Path, default: str) -> None:
+        super().__init__(engines, preferences, "brain", default)
+
+    @property
+    def name(self) -> str:
+        return self.current.name
+
+    @property
+    def native_tools(self) -> bool:
+        return bool(getattr(self.current, "native_tools", False))
+
+    @property
+    def loaded(self) -> bool:
+        return self.current.loaded
+
+    @property
+    def available(self) -> bool:
+        return bool(getattr(self.current, "available", True))
+
+    async def load(self) -> None:
+        await self.current.load()
+
+    async def prime(self, messages: list[Message], tools: list[dict[str, Any]] | None = None) -> None:
+        if prime := getattr(self.current, "prime", None):
+            await prime(messages, tools)
+        else:
+            await self.current.load()
+
+    def stream(
+        self,
+        messages: list[Message],
+        cancel: threading.Event,
+        stats: GenerationStats,
+        tools: list[dict[str, Any]] | None = None,
+        prefix: str = "",
+    ) -> AsyncIterator[str]:
+        return self.current.stream(messages, cancel, stats, tools=tools, prefix=prefix)

@@ -109,6 +109,8 @@ class ToolCall:
     name: str
     arguments: dict[str, Any]
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
+    # Gemini's opaque token for this call; it must be sent back with it.
+    thought_signature: str | None = None
 
 
 @dataclass

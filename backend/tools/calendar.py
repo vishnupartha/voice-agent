@@ -5,12 +5,18 @@ from __future__ import annotations
 
 import asyncio
 from datetime import date, datetime, time, timedelta
+from pathlib import Path
+from time import monotonic
 from typing import Any
 
+import structlog
 from pydantic import BaseModel, Field
 
 from backend.agent.tools import ApprovalRequest, Permission, Tool, ToolContext, ToolError
 from backend.integrations.google_auth import GoogleAuth, GoogleNotConnected
+from backend.preferences import read_preferences
+
+log = structlog.get_logger(__name__)
 
 
 def local_tz() -> Any:
@@ -32,9 +38,73 @@ def _fmt(dt: datetime) -> str:
     return dt.astimezone().strftime("%a %b %-d, %-I:%M %p")
 
 
+CALENDAR_LIST_TTL_S = 600
+
+
 class Calendar:
-    def __init__(self, auth: GoogleAuth) -> None:
+    def __init__(self, auth: GoogleAuth, preferences: Path | None = None) -> None:
         self.auth = auth
+        self._prefs = preferences
+        self._calendars: list[dict[str, Any]] = []
+        self._calendars_at = 0.0
+
+    async def calendars(self) -> list[dict[str, Any]]:
+        """Every calendar in the user's list (own, shared, subscribed), cached briefly."""
+        if not self._calendars or monotonic() - self._calendars_at > CALENDAR_LIST_TTL_S:
+            # Calendars hidden in the app (e.g. someone else's, shared with the
+            # user): {"id", "name"} entries under "hidden_calendars".
+            hidden = read_preferences(self._prefs).get("hidden_calendars", []) if self._prefs else []
+            hidden_ids = {h["id"] for h in hidden}
+            resp = await self.call(lambda svc: svc.calendarList().list(maxResults=250))
+            self._calendars = [
+                {
+                    "id": c["id"],
+                    "name": c.get("summaryOverride") or c.get("summary", c["id"]),
+                    "primary": bool(c.get("primary")),
+                    # Ticked in Google Calendar's sidebar, i.e. ones the user looks at.
+                    "shown": bool(c.get("selected")) or bool(c.get("primary")),
+                    "can_edit": c.get("accessRole") in ("owner", "writer"),
+                }
+                for c in resp.get("items", [])
+                if not c.get("deleted") and c["id"] not in hidden_ids
+            ]
+            self._calendars_at = monotonic()
+        return self._calendars
+
+    async def resolve(self, calendar_id: str | None) -> list[dict[str, Any]]:
+        """The calendars a read covers: one by ID or name, or all shown ones."""
+        cals = await self.calendars()
+        if not calendar_id:
+            return [c for c in cals if c["shown"]]
+        if calendar_id == "primary":
+            return [c for c in cals if c["primary"]] or [{"id": "primary", "name": "primary"}]
+        wanted = calendar_id.casefold()
+        match = [c for c in cals if c["id"] == calendar_id or c["name"].casefold() == wanted]
+        if not match:
+            raise ToolError(f"no calendar called {calendar_id!r}; use calendar.list_calendars")
+        return match
+
+    async def events(self, calendar_id: str | None, **params: Any) -> list[dict[str, Any]]:
+        """Events from each calendar `calendar_id` covers, merged in time order.
+        A calendar that fails to load is skipped rather than failing the lot."""
+        cals = await self.resolve(calendar_id)
+
+        async def one(c: dict[str, Any]) -> list[dict[str, Any]]:
+            try:
+                resp = await self.call(
+                    lambda svc: svc.events().list(
+                        calendarId=c["id"], singleEvents=True, orderBy="startTime", **params
+                    )
+                )
+            except ToolError:
+                raise
+            except Exception:
+                log.warning("calendar.list_failed", calendar=c["name"], exc_info=True)
+                return []
+            return [normalize(ev, c["id"], c["name"]) for ev in resp.get("items", [])]
+
+        merged = [ev for evs in await asyncio.gather(*(one(c) for c in cals)) for ev in evs]
+        return sorted(merged, key=_start_key)
 
     async def call(self, fn: Any) -> Any:
         try:
@@ -50,7 +120,15 @@ class Calendar:
         return await asyncio.to_thread(run)
 
 
-def normalize(e: dict[str, Any], calendar_id: str = "primary") -> dict[str, Any]:
+def _start_key(ev: dict[str, Any]) -> datetime:
+    if ev["all_day"]:
+        return datetime.combine(date.fromisoformat(ev["start"]), time.min, local_tz())
+    return datetime.fromisoformat(ev["start_iso"])
+
+
+def normalize(
+    e: dict[str, Any], calendar_id: str = "primary", calendar_name: str | None = None
+) -> dict[str, Any]:
     start, end = e.get("start", {}), e.get("end", {})
     all_day = "date" in start
     if all_day:
@@ -65,7 +143,8 @@ def normalize(e: dict[str, Any], calendar_id: str = "primary") -> dict[str, Any]
         }
     return {
         "id": e["id"],
-        "calendar": calendar_id,
+        "calendar_id": calendar_id,
+        "calendar": calendar_name or calendar_id,
         "title": e.get("summary", "(no title)"),
         **when,
         "location": e.get("location"),
@@ -79,23 +158,60 @@ def normalize(e: dict[str, Any], calendar_id: str = "primary") -> dict[str, Any]
 # ---- arguments ----
 
 
+_ALL = "Calendar ID or name; default: all the user's calendars"
+_ONE = "The event's calendar_id, as returned with the event"
+
+
+class NoArgs(BaseModel):
+    pass
+
+
 class RangeArgs(BaseModel):
     start: str | None = Field(None, description="ISO date/datetime; default: start of today")
     end: str | None = Field(None, description="ISO date/datetime; default: end of the start day")
-    calendar_id: str = "primary"
-    max_results: int = Field(25, ge=1, le=50)
+    calendar_id: str | None = Field(None, description=_ALL)
+    max_results: int = Field(40, ge=1, le=100)
 
 
 class EventArgs(BaseModel):
     event_id: str
-    calendar_id: str = "primary"
+    calendar_id: str = Field("primary", description=_ONE)
 
 
 class SearchArgs(BaseModel):
     query: str
     start: str | None = Field(None, description="ISO; default: now")
     end: str | None = Field(None, description="ISO; default: 60 days after start")
-    calendar_id: str = "primary"
+    calendar_id: str | None = Field(None, description=_ALL)
+
+
+HOLIDAY_CALENDAR = "en.usa#holiday@group.v.calendar.google.com"
+
+
+# Days the offline table names one way but many places call something else too.
+_ALSO_CALLED = {"Columbus Day": "Columbus Day, also observed as Indigenous Peoples' Day"}
+_KINDS = {"public": "public holiday", "government": "government holiday", "unofficial": "observance"}
+
+
+def local_holidays(start: date, end: date, state: str | None = None) -> list[dict[str, Any]]:
+    """US holidays from the offline `holidays` table: federal and state public
+    holidays plus unofficial observances like Halloween."""
+    import holidays
+
+    found: dict[tuple[str, str], str] = {}
+    # "public" goes last so it wins when a day is also a government holiday.
+    for cat in sorted(holidays.US.supported_categories, key=lambda c: c == "public"):
+        table = holidays.US(subdiv=state, years=range(start.year, end.year + 1), categories=(cat,))
+        for day, names in table.items():
+            if start <= day <= end:
+                for name in names.split("; "):
+                    found[day.isoformat(), _ALSO_CALLED.get(name, name)] = _KINDS.get(cat, cat)
+    return [{"date": d, "name": n, "kind": k} for (d, n), k in sorted(found.items())]
+
+
+class HolidayArgs(BaseModel):
+    start: str | None = Field(None, description="ISO date; default: today")
+    end: str | None = Field(None, description="ISO date; default: 30 days after start")
 
 
 class FreeTimeArgs(BaseModel):
@@ -115,7 +231,7 @@ class CreateArgs(BaseModel):
     location: str | None = None
     description: str | None = None
     attendees: list[str] | None = Field(None, description="Email addresses to invite")
-    calendar_id: str = "primary"
+    calendar_id: str = Field("primary", description="Calendar to add it to (ID or name); default: main")
 
 
 class UpdateArgs(BaseModel):
@@ -125,7 +241,7 @@ class UpdateArgs(BaseModel):
     end: str | None = None
     location: str | None = None
     description: str | None = None
-    calendar_id: str = "primary"
+    calendar_id: str = Field("primary", description=_ONE)
 
 
 def _range(start: str | None, end: str | None) -> tuple[datetime, datetime]:
@@ -171,17 +287,20 @@ def _when_text(body: dict[str, Any]) -> str:
     return ""
 
 
-def calendar_tools(cal: Calendar) -> list[Tool]:
+def calendar_tools(cal: Calendar, holiday_state: str | None = None) -> list[Tool]:
+    async def list_calendars(a: NoArgs, ctx: ToolContext) -> Any:
+        return {
+            "calendars": [
+                {k: c[k] for k in ("id", "name", "primary", "can_edit")} for c in await cal.calendars()
+            ]
+        }
+
     async def get_events(a: RangeArgs, ctx: ToolContext) -> Any:
         s, e = _range(a.start, a.end)
-        resp = await cal.call(
-            lambda svc: svc.events().list(
-                calendarId=a.calendar_id, timeMin=s.isoformat(), timeMax=e.isoformat(),
-                singleEvents=True, orderBy="startTime", maxResults=a.max_results,
-            )
-        )  # fmt: skip
-        events = [normalize(ev, a.calendar_id) for ev in resp.get("items", [])]
-        return {"from": _fmt(s), "to": _fmt(e), "count": len(events), "events": events}
+        events = await cal.events(
+            a.calendar_id, timeMin=s.isoformat(), timeMax=e.isoformat(), maxResults=a.max_results
+        )
+        return {"from": _fmt(s), "to": _fmt(e), "count": len(events), "events": events[: a.max_results]}
 
     async def get_event(a: EventArgs, ctx: ToolContext) -> Any:
         ev = await cal.call(lambda svc: svc.events().get(calendarId=a.calendar_id, eventId=a.event_id))
@@ -190,25 +309,45 @@ def calendar_tools(cal: Calendar) -> list[Tool]:
     async def search(a: SearchArgs, ctx: ToolContext) -> Any:
         s = parse_when(a.start) if a.start else datetime.now().astimezone()
         e = parse_when(a.end) if a.end else s + timedelta(days=60)
-        resp = await cal.call(
-            lambda svc: svc.events().list(
-                calendarId=a.calendar_id, q=a.query, timeMin=s.isoformat(), timeMax=e.isoformat(),
-                singleEvents=True, orderBy="startTime", maxResults=25,
-            )
-        )  # fmt: skip
-        events = [normalize(ev, a.calendar_id) for ev in resp.get("items", [])]
-        return {"query": a.query, "count": len(events), "events": events}
+        events = await cal.events(
+            a.calendar_id, q=a.query, timeMin=s.isoformat(), timeMax=e.isoformat(), maxResults=25
+        )
+        return {"query": a.query, "count": len(events), "events": events[:25]}
+
+    async def holidays(a: HolidayArgs, ctx: ToolContext) -> Any:
+        s = parse_when(a.start).date() if a.start else date.today()
+        e = parse_when(a.end).date() if a.end else s + timedelta(days=30)
+        found = local_holidays(s, e, holiday_state)
+        try:  # Google's list adds observances the offline table lacks.
+            resp = await cal.call(
+                lambda svc: svc.events().list(
+                    calendarId=HOLIDAY_CALENDAR, singleEvents=True, orderBy="startTime", maxResults=50,
+                    timeMin=datetime.combine(s, time.min, local_tz()).isoformat(),
+                    timeMax=datetime.combine(e, time.max, local_tz()).isoformat(),
+                )
+            )  # fmt: skip
+            for ev in resp.get("items", []):
+                day = ev["start"].get("date")
+                if day and not any(h["date"] == day and h["name"] == ev.get("summary") for h in found):
+                    found.append({"date": day, "name": ev.get("summary"), "kind": ev.get("description")})
+        except ToolError:
+            pass  # Google not connected; the offline table still answers
+        found.sort(key=lambda h: h["date"])
+        return {"from": s.isoformat(), "to": e.isoformat(), "count": len(found), "holidays": found}
 
     async def find_free_time(a: FreeTimeArgs, ctx: ToolContext) -> Any:
         s, e = _range(a.start, a.end)
+        ids = [c["id"] for c in await cal.resolve(None)]
         resp = await cal.call(
             lambda svc: svc.freebusy().query(
-                body={"timeMin": s.isoformat(), "timeMax": e.isoformat(), "items": [{"id": "primary"}]}
+                body={"timeMin": s.isoformat(), "timeMax": e.isoformat(), "items": [{"id": i} for i in ids]}
             )
         )
+        # Busy time on any of the user's calendars (classes, clubs, ...) counts.
         busy = sorted(
             (datetime.fromisoformat(b["start"]), datetime.fromisoformat(b["end"]))
-            for b in resp["calendars"]["primary"].get("busy", [])
+            for c in resp["calendars"].values()
+            for b in c.get("busy", [])
         )
         free = free_slots(
             s, e, busy, a.min_minutes, time.fromisoformat(a.day_start), time.fromisoformat(a.day_end)
@@ -230,10 +369,12 @@ def calendar_tools(cal: Calendar) -> list[Tool]:
         )  # fmt: skip
         details = {"Title": a.title, "When": _when_text(body), "Location": a.location or "",
                    "Invite": ", ".join(a.attendees or [])}  # fmt: skip
+        target = (await cal.resolve(a.calendar_id))[0]
+        details["Calendar"] = target["name"]
         if not await ctx.request_approval(ApprovalRequest("calendar.create_event", "Add Event", details)):
             return {"status": "not created: the user declined or didn't confirm"}
-        ev = await cal.call(lambda svc: svc.events().insert(calendarId=a.calendar_id, body=body))
-        return {"status": "created", **normalize(ev, a.calendar_id)}
+        ev = await cal.call(lambda svc: svc.events().insert(calendarId=target["id"], body=body))
+        return {"status": "created", **normalize(ev, target["id"], target["name"])}
 
     async def update_event(a: UpdateArgs, ctx: ToolContext) -> Any:
         current = normalize(
@@ -283,11 +424,18 @@ def calendar_tools(cal: Calendar) -> list[Tool]:
 
     R, A = Permission.READ, Permission.APPROVAL
     return [
-        Tool("calendar.get_events", "List calendar events in a time range (default: today).", RangeArgs,
+        Tool("calendar.list_calendars", "List the user's calendars (classes, clubs, shared and subscribed ones).",
+             NoArgs, list_calendars, R, label="Listed calendars"),
+        Tool("calendar.get_events", "List events in a time range (default: today) across all the user's "
+             "calendars, or one calendar by name. Each event says which calendar it's on.", RangeArgs,
              get_events, R, untrusted=True, label="Checked calendar"),
         Tool("calendar.get_event", "Get one event.", EventArgs, get_event, R, untrusted=True, label="Read an event"),
-        Tool("calendar.search", "Search events by text.", SearchArgs, search, R, untrusted=True,
+        Tool("calendar.search", "Search events by text across all the user's calendars.", SearchArgs, search, R,
+             untrusted=True,
              label="Searched calendar"),
+        Tool("calendar.holidays", "US public holidays and observances (federal, state, cultural and religious) "
+             "in a date range. Use for any question about holidays.", HolidayArgs, holidays, R,
+             label="Checked holidays"),
         Tool("calendar.find_free_time", "Find free slots between start and end.", FreeTimeArgs, find_free_time, R,
              label="Found free time"),
         Tool("calendar.create_event", "Create an event. The user is asked to approve first.", CreateArgs,

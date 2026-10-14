@@ -23,6 +23,18 @@ struct MainWindow: View {
         .frame(minWidth: 480, minHeight: 420)
         .toolbar {
             ToolbarItem {
+                if let brain = state.brainSettings {
+                    EnginePicker(title: "Brain", settings: brain, select: state.setBrainEngine)
+                        .help("Which model answers: Gemini in the cloud, or Qwen3.5 on this Mac")
+                }
+            }
+            ToolbarItem {
+                if let voice = state.voiceSettings {
+                    EnginePicker(title: "Voice", settings: voice, select: state.setVoiceEngine)
+                        .help("Which voice speaks replies")
+                }
+            }
+            ToolbarItem {
                 Button("New Conversation", systemImage: "square.and.pencil") { state.newConversation() }
             }
         }
@@ -99,5 +111,21 @@ private struct StatusBanner: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
             .background(.quaternary.opacity(0.5))
+    }
+}
+
+/// A toolbar menu for choosing between engines; unavailable ones are greyed out.
+private struct EnginePicker: View {
+    let title: String
+    let settings: EngineSettings
+    let select: (String) -> Void
+
+    var body: some View {
+        Picker(title, selection: Binding(get: { settings.engine }, set: select)) {
+            ForEach(settings.engines) { engine in
+                Text(engine.name).tag(engine.id).disabled(!engine.available)
+            }
+        }
+        .pickerStyle(.menu)
     }
 }

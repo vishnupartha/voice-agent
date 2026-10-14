@@ -92,7 +92,19 @@ class Agent:
                     await emit("assistant.text.delta", delta=separator + new)
                     separator = ""
             text, calls = reply.finish()
-            if not calls and schemas and not cancel.is_set() and len(text) < 120 and _ANNOUNCE.match(text):
+            calls += [
+                ToolCall(c["name"], c["arguments"], thought_signature=c["thought_signature"])
+                for c in stats.tool_calls
+            ]
+            native = getattr(self.llm, "native_tools", False)
+            if (
+                not calls
+                and not native
+                and schemas
+                and not cancel.is_set()
+                and len(text) < 120
+                and _ANNOUNCE.match(text)
+            ):
                 calls = await self._force_call(messages, text, schemas, cancel, stats)
 
             if first_token_ms is None and stats.first_token_s is not None:
@@ -112,7 +124,13 @@ class Agent:
                 {
                     "role": "assistant",
                     "content": text,
-                    "tool_calls": [{"function": {"name": c.name, "arguments": c.arguments}} for c in calls],
+                    "tool_calls": [
+                        {
+                            "function": {"name": c.name, "arguments": c.arguments},
+                            **({"thought_signature": c.thought_signature} if c.thought_signature else {}),
+                        }
+                        for c in calls
+                    ],
                 }
             )
             for result in await self._run_calls(calls, ctx, emit):

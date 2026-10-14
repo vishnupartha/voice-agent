@@ -4,12 +4,15 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.15.0",
+    "en-core-web-sm",
     "fastapi>=0.141.1",
     "google-api-python-client>=2.201.0",
     "google-auth>=2.62.0",
     "google-auth-oauthlib>=1.5.0",
+    "holidays>=0.106",
     "httpx>=0.28.1",
     "keyring>=25.7.0",
+    "misaki[en]>=0.9.4",
     "mlx>=0.32.2",
     "mlx-audio>=0.5.6",
     "mlx-lm>=0.31.3",
@@ -42,3 +45,6 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
 per-file-ignores = { "backend/agent/prompts.py" = ["E501"], "backend/tools/*.py" = ["E501"], "backend/tests/*.py" = ["E501"] }
+
+[tool.uv.sources]
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }

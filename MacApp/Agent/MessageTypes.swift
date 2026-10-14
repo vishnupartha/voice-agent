@@ -129,6 +129,18 @@ struct ConnectionsResponse: Decodable, Sendable {
     let google: Google
 }
 
+/// A choice between engines (voice or brain) and which one is active.
+struct EngineSettings: Decodable, Sendable, Equatable {
+    struct Engine: Decodable, Sendable, Equatable, Identifiable {
+        let id: String
+        let name: String
+        let available: Bool
+    }
+
+    let engine: String
+    let engines: [Engine]
+}
+
 struct HealthResponse: Decodable, Sendable {
     struct Models: Decodable, Sendable { let stt: Bool; let llm: Bool; let tts: Bool }
     let status: String

@@ -77,7 +77,8 @@ private struct MenuBarMenu: View {
         case .connecting:
             Text("Google: waiting for sign-in in your browser…")
         case .notConfigured:
-            Text("Google: not set up (see README)")
+            // The client secret may be saved while the app is running; let the user re-check.
+            Button("Google: not set up — Check Again") { Task { await state.refreshConnections() } }
         case .disconnected, .unknown:
             Button("Connect Google…") { state.connectGoogle() }
                 .disabled(state.backend != .ready)

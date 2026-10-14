@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from html import escape
 from typing import Any, Literal
 
+import structlog
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
 from backend import __version__
 from backend.agent.agent import Agent
@@ -20,10 +23,14 @@ from backend.log_setup import configure_logging
 from backend.tools.calendar import Calendar, calendar_tools
 from backend.tools.gmail import Gmail, gmail_tools
 from backend.tools.system import system_tools
-from backend.voice.llm import MLXLLM
+from backend.tools.web import web_tools
+from backend.voice.gemini import GeminiLLM
+from backend.voice.llm import MLXLLM, SwitchableLLM
 from backend.voice.mlx_runtime import MLXWorker
 from backend.voice.stt import ParakeetSTT
-from backend.voice.tts import QwenTTS
+from backend.voice.tts import KokoroTTS, QwenTTS, SwitchableTTS
+
+log = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
@@ -35,21 +42,49 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Models load lazily on first use (spec §88), not at startup.
     worker = MLXWorker()
     app.state.stt = ParakeetSTT(settings.stt_model_path, worker)
-    app.state.tts = QwenTTS(settings.tts_model_path, worker, settings.tts_voice)
-    app.state.llm = MLXLLM(
-        settings.llm_model_path,
-        worker,
-        max_tokens=settings.llm_max_tokens,
-        temperature=settings.llm_temperature,
-        top_p=settings.llm_top_p,
+    app.state.tts = SwitchableTTS(
+        {
+            "kokoro": KokoroTTS(settings.kokoro_model_path, worker, settings.kokoro_voice),
+            "qwen": QwenTTS(settings.tts_model_path, worker, settings.tts_voice),
+        },
+        settings.data_dir / "preferences.json",
+        default=settings.tts_engine,
     )
+    app.state.llm = SwitchableLLM(
+        {
+            "gemini": GeminiLLM(
+                settings.gemini_model,
+                fallback=settings.gemini_fallback_model,
+                max_tokens=settings.llm_max_tokens,
+                temperature=settings.gemini_temperature,
+                thinking=settings.gemini_thinking,
+            ),
+            "local": MLXLLM(
+                settings.llm_model_path,
+                worker,
+                max_tokens=settings.llm_max_tokens,
+                temperature=settings.llm_temperature,
+                top_p=settings.llm_top_p,
+            ),
+        },
+        settings.data_dir / "preferences.json",
+        default=settings.llm_provider,
+    )
+    if not app.state.llm.available:  # e.g. Gemini chosen but no key stored
+        log.warning("llm.unavailable", engine=app.state.llm.engine, fallback="local")
+        app.state.llm.engine = "local"
     google = GoogleAuth(
         f"http://{settings.personal_agent_host}:{settings.personal_agent_port}/auth/google/callback",
         profile_path=settings.data_dir / "profile.json",
     )
     app.state.google = google
     tools = ToolRegistry()
-    tools.register(*system_tools(), *gmail_tools(Gmail(google)), *calendar_tools(Calendar(google)))
+    tools.register(
+        *system_tools(),
+        *gmail_tools(Gmail(google)),
+        *calendar_tools(Calendar(google, settings.data_dir / "preferences.json"), settings.holiday_state),
+        *web_tools(),
+    )
     app.state.services = Services(
         agent=Agent(app.state.llm, tools, profile=google.profile),
         conversations=ConversationStore(),
@@ -83,6 +118,59 @@ async def models() -> dict[str, Any]:
         kind: {"name": m.name, "available": m.available, "loaded": m.loaded}
         for kind, m in (("stt", app.state.stt), ("llm", app.state.llm), ("tts", app.state.tts))
     }
+
+
+class EngineChoice(BaseModel):
+    engine: str
+
+
+@app.get("/voice", dependencies=[Depends(require_token)])
+async def voice() -> dict[str, Any]:
+    tts: SwitchableTTS = app.state.tts
+    return {
+        "engine": tts.engine,
+        "engines": [
+            {"id": "kokoro", "name": "Kokoro (steady)", "available": tts.engines["kokoro"].available},
+            {"id": "qwen", "name": "Qwen3-TTS (expressive)", "available": tts.engines["qwen"].available},
+        ],
+    }
+
+
+@app.put("/voice", dependencies=[Depends(require_token)])
+async def set_voice(choice: EngineChoice) -> dict[str, Any]:
+    try:
+        app.state.tts.select(choice.engine)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    # Load it now, in the background, so the next reply doesn't wait for it.
+    asyncio.create_task(app.state.tts.load())
+    return await voice()
+
+
+@app.get("/brain", dependencies=[Depends(require_token)])
+async def brain() -> dict[str, Any]:
+    llm: SwitchableLLM = app.state.llm
+    return {
+        "engine": llm.engine,
+        "engines": [
+            {"id": "gemini", "name": "Gemini Flash (cloud)", "available": llm.engines["gemini"].available},
+            {"id": "local", "name": "Qwen3.5 9B (local)", "available": llm.engines["local"].available},
+        ],
+    }
+
+
+@app.put("/brain", dependencies=[Depends(require_token)])
+async def set_brain(choice: EngineChoice) -> dict[str, Any]:
+    llm: SwitchableLLM = app.state.llm
+    if choice.engine in llm.engines and not llm.engines[choice.engine].available:
+        raise HTTPException(400, f"{choice.engine} isn't set up")
+    try:
+        llm.select(choice.engine)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    # The local model takes a few seconds to load; start now, not on the next question.
+    asyncio.create_task(app.state.services.agent.warm())
+    return await brain()
 
 
 @app.post("/models/{kind}/load", dependencies=[Depends(require_token)])

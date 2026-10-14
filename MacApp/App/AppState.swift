@@ -55,6 +55,10 @@ final class AppState {
     private(set) var pendingApproval: PendingApproval?
     enum GoogleStatus: Equatable { case unknown, notConfigured, disconnected, connecting, connected }
     private(set) var google: GoogleStatus = .unknown
+    /// Which voice engine speaks replies, and the choices (Kokoro, Qwen3-TTS).
+    private(set) var voiceSettings: EngineSettings?
+    /// Which model answers (cloud Gemini or local Qwen3.5), and the choices.
+    private(set) var brainSettings: EngineSettings?
     private var silentChunks = 0
     private let micGate = MicGate()
 
@@ -87,6 +91,7 @@ final class AppState {
             try await client.connect(token: token, conversationID: conversationID)
             backend = .ready
             await refreshConnections()
+            await refreshEngineSettings()
         } catch {
             backend = .unavailable(error.localizedDescription)
         }
@@ -128,6 +133,35 @@ final class AppState {
         google = !c.google.configured ? .notConfigured : c.google.connected ? .connected : .disconnected
     }
 
+    // MARK: Voice and brain engines
+
+    func refreshEngineSettings() async {
+        if let data = try? await api("GET", "/voice") {
+            voiceSettings = try? JSONDecoder().decode(EngineSettings.self, from: data)
+        }
+        if let data = try? await api("GET", "/brain") {
+            brainSettings = try? JSONDecoder().decode(EngineSettings.self, from: data)
+        }
+    }
+
+    func setVoiceEngine(_ engine: String) {
+        Task { if let s = await selectEngine(engine, path: "/voice") { voiceSettings = s } }
+    }
+
+    func setBrainEngine(_ engine: String) {
+        Task { if let s = await selectEngine(engine, path: "/brain") { brainSettings = s } }
+    }
+
+    private func selectEngine(_ engine: String, path: String) async -> EngineSettings? {
+        do {
+            let body = try JSONEncoder().encode(["engine": engine])
+            return try JSONDecoder().decode(EngineSettings.self, from: await api("PUT", path, body: body))
+        } catch {
+            lastError = error.localizedDescription
+            return nil
+        }
+    }
+
     /// Opens Google's consent page in the browser; the backend finishes the
     /// sign-in on its callback, and this polls until it sees the connection.
     func connectGoogle() {
@@ -160,10 +194,14 @@ final class AppState {
         let errorDescription: String?
     }
 
-    private func api(_ method: String, _ path: String) async throws -> Data {
+    private func api(_ method: String, _ path: String, body: Data? = nil) async throws -> Data {
         guard let token else { throw APIError(errorDescription: "Backend not ready") }
         var request = URLRequest(url: BackendConfig.httpURL(path: path))
         request.httpMethod = method
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         request.setValue(token, forHTTPHeaderField: BackendConfig.tokenHeader)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {

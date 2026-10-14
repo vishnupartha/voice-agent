@@ -6,10 +6,15 @@ as stages land so any session can see where the build is.
 
 ## Deliberate deviations from the spec
 
-- **LLM:** `mlx-community/Qwen3.5-9B-4bit` instead of Qwen3-4B-Instruct-2507 (the dev Mac
-  has 48 GB; swappable via `LLM_REPO` in `.env.local`).
-- **STT/TTS repos:** `mlx-community/parakeet-tdt-0.6b-v3`,
-  `mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-6bit` (voice `ryan`).
+- **LLM:** Gemini Flash through the free Gemini API (`LLM_PROVIDER=gemini`, the default),
+  falling back to Flash-Lite when Flash is overloaded. This is not local: prompts, tool
+  results (email, calendar) go to Google, and free-tier data may be used to improve
+  Google's products. `LLM_PROVIDER=local` uses `mlx-community/Qwen3.5-9B-4bit`, which
+  proved too weak for a voice assistant. Also used when no Gemini key is stored.
+- **STT:** `mlx-community/parakeet-tdt-0.6b-v3`.
+- **TTS:** Kokoro-82M (default, voice `af_heart`) or Qwen3-TTS 1.7B CustomVoice 6-bit (voice
+  `ryan`), switchable from the dashboard's Voice menu. Qwen3-TTS samples its audio and
+  sometimes ad-libs laughs or drawn-out words; Kokoro can't.
 - **Protocol additions:** `user.message` (typed turns) and `input.speech_started`
   (tells the client to stop playback on barge-in). `/ws/chat` and `/ws/voice`
   share one session type; only spoken turns get audio replies.

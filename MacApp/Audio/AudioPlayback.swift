@@ -1,6 +1,6 @@
 import AVFoundation
 
-/// Plays the assistant's streamed PCM16 speech (spec §12).
+/// Plays the assistant's streamed PCM16 speech.
 @MainActor
 final class AudioPlayback {
     /// Speaking speed. Time-stretched, so pitch is unchanged.

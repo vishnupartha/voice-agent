@@ -46,7 +46,7 @@ APPROVAL_TIMEOUT_S = 120
 # Long enough for a first-use permission prompt (e.g. Reminders access) to be answered.
 BRIDGE_TIMEOUT_S = 60
 
-# Spoken answers to a pending approval (spec §19): "Send it." / "No, wait."
+# Spoken answers to a pending approval: "Send it." / "No, wait."
 _YES = re.compile(
     r"^(yes|yeah|yep|yup|sure|ok(ay)?|confirm(ed)?|approve(d)?|go ahead|do it|send it|send|"
     r"add it|delete it|move it|change it|sounds good|that's fine|please do)\b"
@@ -77,7 +77,7 @@ class Services:
 
 
 class AgentSession:
-    """One WebSocket connection (spec §11–13).
+    """One WebSocket connection.
 
     Text frames carry JSON control messages; binary frames carry 16 kHz mono
     PCM16 microphone audio, and the backend answers voice turns with binary
@@ -174,7 +174,7 @@ class AgentSession:
             if (fut := self._bridge.get(msg.request_id)) is not None and not fut.done():
                 fut.set_result(msg)
 
-    # ---- approvals (spec §19, §72) ----
+    # ---- approvals ----
 
     async def request_approval(self, req: ApprovalRequest) -> bool:
         """Ask the user; only an answer to this exact approval_id counts, and
@@ -247,8 +247,8 @@ class AgentSession:
         self._segmenter.reset()
         self._listening = True
         log.info("voice.listening")
-        # Warm the models in the background so the first reply isn't slowed
-        # by loading (spec §88: load lazily, on first voice use).
+        # Warm the models in the background (they load lazily, on first voice
+        # use) so the first reply isn't slowed by loading.
         asyncio.create_task(self._warm_models())
 
     async def _warm_models(self) -> None:
@@ -312,7 +312,7 @@ class AgentSession:
 
     async def _on_speech_start(self) -> None:
         self._last_partial_samples = 0
-        # Barge-in (spec §13): stop speaking and generating; the client stops
+        # Barge-in: stop speaking and generating; the client stops
         # playback when it sees this event. While an approval is pending, the
         # user is probably answering it, so the turn is kept alive.
         interrupted = self._assistant_active()

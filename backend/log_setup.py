@@ -1,5 +1,5 @@
 """Structured logging to ~/Library/Logs/PersonalAgent. Never log tokens,
-cookies, or full email bodies (spec §68)."""
+cookies, or full email bodies."""
 
 from __future__ import annotations
 

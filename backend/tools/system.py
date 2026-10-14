@@ -1,4 +1,4 @@
-"""system.* tools (spec §57)."""
+"""system.* tools."""
 
 from __future__ import annotations
 

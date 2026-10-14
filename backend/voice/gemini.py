@@ -128,7 +128,7 @@ class GeminiLLM:
 
     async def load(self) -> None:
         if not api_key():
-            raise RuntimeError("No Gemini API key. Run: pbpaste | uv run python -m scripts.gemini_setup")
+            raise RuntimeError("No Gemini API key: paste one in Settings")
 
     async def stream(
         self,
@@ -140,7 +140,7 @@ class GeminiLLM:
     ) -> AsyncIterator[str]:
         key = api_key()
         if not key:
-            raise RuntimeError("No Gemini API key. Run: pbpaste | uv run python -m scripts.gemini_setup")
+            raise RuntimeError("No Gemini API key: paste one in Settings")
         system, contents = _contents(messages)
         body: dict[str, Any] = {
             "contents": contents,

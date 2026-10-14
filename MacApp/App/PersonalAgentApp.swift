@@ -43,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // Closing the window keeps the app in the menu bar (spec §84).
+    // Closing the window keeps the app in the menu bar.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging(settings.log_dir)
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     app.state.token = load_or_create_token(settings.data_dir / "agent.token")
-    # Models load lazily on first use (spec §88), not at startup.
+    # Models load lazily on first use, not at startup.
     worker = MLXWorker()
     app.state.stt = ParakeetSTT(settings.stt_model_path, worker)
     app.state.tts = SwitchableTTS(
@@ -124,7 +124,6 @@ async def health() -> dict[str, Any]:
         "version": __version__,
         "models": {"stt": state.stt.loaded, "llm": state.llm.loaded, "tts": state.tts.loaded},
         "database": getattr(state, "db", None) is not None,
-        "scheduler": False,
     }
 
 
@@ -205,7 +204,7 @@ async def load_model(kind: Literal["stt", "llm", "tts"]) -> dict[str, Any]:
 
 @app.get("/connections", dependencies=[Depends(require_token)])
 async def connections() -> dict[str, Any]:
-    # Never includes credential values (spec §108).
+    # Never includes credential values.
     google: GoogleAuth = app.state.google
     connected = google.connected
     return {
@@ -260,6 +259,6 @@ def _page(title: str, body: str, status: int = 200) -> HTMLResponse:
 
 
 # One session type serves both: typed turns get text replies, spoken turns
-# get text plus audio (spec §10–11).
+# get text plus audio.
 app.add_api_websocket_route("/ws/chat", agent_endpoint)
 app.add_api_websocket_route("/ws/voice", agent_endpoint)

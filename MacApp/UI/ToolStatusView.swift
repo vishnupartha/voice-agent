@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// What the agent did this turn (spec §17): one collapsed line, expandable.
+/// What the agent did this turn: one collapsed line, expandable.
 struct ToolStatusView: View {
     let tools: [LiveTool]
     @State private var expanded = false
@@ -51,7 +51,7 @@ struct ToolStatusView: View {
     }
 }
 
-/// The current email draft, so edits by voice can be seen (spec §26).
+/// The current email draft, so edits by voice can be seen.
 struct DraftCard: View {
     let draft: DraftView
 

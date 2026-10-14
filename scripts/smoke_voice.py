@@ -1,4 +1,4 @@
-"""Real-model smoke test: TTS -> STT round trip and LLM latency (spec §89).
+"""Real-model smoke test: TTS -> STT round trip and LLM latency.
 
 uv run python -m scripts.smoke_voice
 """

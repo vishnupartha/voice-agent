@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Confirmation for high-impact actions (spec §19). Saying "send it" works
+/// Confirmation for high-impact actions. Saying "send it" works
 /// too; either way only this exact pending approval is answered.
 struct ApprovalView: View {
     let approval: PendingApproval

@@ -1,4 +1,4 @@
-"""Local speech recognition: Parakeet TDT through MLX (spec §5).
+"""Local speech recognition: Parakeet TDT through MLX.
 
 Each utterance is short (VAD caps it at 30 s), so partials simply re-transcribe
 the audio so far; Parakeet handles 10 s of audio in well under 100 ms on

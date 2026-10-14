@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     # Voice engine until one is picked in the app: "kokoro" or "qwen".
     tts_engine: str = "kokoro"
 
-    # The agent's brain: "gemini" (needs a key: scripts/gemini_setup.py) or "local".
+    # The agent's brain: "gemini" (needs a key, pasted in Settings) or "local".
     llm_provider: str = "gemini"
     gemini_model: str = "gemini-flash-latest"
     # Used when the main model is overloaded (common on the free tier).
@@ -42,8 +42,6 @@ class Settings(BaseSettings):
     # Low temperature: at 0.7 the model skipped tool calls ~30% of the time.
     llm_temperature: float = 0.2
     llm_top_p: float = 0.8
-
-    background_monitoring: bool = True
 
     def model_path(self, repo: str) -> Path:
         return self.model_dir / repo.split("/")[-1]

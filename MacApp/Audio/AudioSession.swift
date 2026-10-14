@@ -1,7 +1,7 @@
 import AVFoundation
 import os
 
-/// One AVAudioEngine for both microphone and speaker (spec §12).
+/// One AVAudioEngine for both microphone and speaker.
 ///
 /// Preferred mode is voice processing: capture and playback share the engine
 /// with Apple's voice-processing I/O unit, which cancels the assistant's own

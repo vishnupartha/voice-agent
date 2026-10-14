@@ -1,4 +1,4 @@
-"""Google Calendar tools (spec §27–28). Reads run freely; creating, changing
+"""Google Calendar tools. Reads run freely; creating, changing
 and deleting events go through approval."""
 
 from __future__ import annotations

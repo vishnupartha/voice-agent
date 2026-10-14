@@ -1,4 +1,4 @@
-"""SQLite database (spec §47): conversations, their messages, and memories.
+"""SQLite database: conversations, their messages, and memories.
 
 Schema changes are appended to MIGRATIONS, never edited in place; the
 database's user_version records how many have run.

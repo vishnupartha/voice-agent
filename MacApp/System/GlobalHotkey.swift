@@ -1,6 +1,6 @@
 import Carbon.HIToolbox
 
-/// A system-wide hotkey via Carbon's RegisterEventHotKey (spec §7, §14).
+/// A system-wide hotkey via Carbon's RegisterEventHotKey.
 /// It needs no Accessibility permission, unlike event taps.
 @MainActor
 final class GlobalHotkey {

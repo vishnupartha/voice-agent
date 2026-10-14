@@ -11,7 +11,7 @@ struct ConversationView: View {
                     if turns.isEmpty { suggestions }
                     ForEach(turns) { TurnView(turn: $0).id($0.id) }
                     if !partialTranscript.isEmpty {
-                        // Live partial STT (spec §75); only the final transcript is kept.
+                        // Live partial STT; only the final transcript is kept.
                         TurnView(turn: Turn(role: .user, text: partialTranscript, isStreaming: true))
                             .opacity(0.6)
                     }

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// The floating voice window that appears on Option+Space (spec §14). It is a
+/// The floating voice window that appears on Option+Space. It is a
 /// non-activating panel, so it never steals focus from the app the user is in.
 @MainActor
 final class VoiceOverlayController {

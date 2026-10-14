@@ -1,4 +1,4 @@
-"""memory.* tools (spec §48–50). Everything remembered is already in the
+"""memory.* tools. Everything remembered is already in the
 system prompt, so there is no tool to look memories up."""
 
 from __future__ import annotations

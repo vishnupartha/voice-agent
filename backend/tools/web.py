@@ -1,4 +1,4 @@
-"""Web tools (spec Stage 3): search, then read a page for the details.
+"""Web tools: search, then read a page for the details.
 
 Search uses the Brave Search API when a key is in the Keychain and falls back
 to DuckDuckGo's HTML results otherwise, so it works with no setup. Everything

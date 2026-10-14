@@ -17,7 +17,7 @@ enum BackendConfig {
     static func wsURL(path: String) -> URL { URL(string: "ws://\(host):\(port)\(path)")! }
 }
 
-/// Finds or launches the local agent daemon (spec §9, §103, §106).
+/// Finds or launches the local agent daemon.
 @MainActor
 final class BackendManager {
     enum LaunchError: LocalizedError {

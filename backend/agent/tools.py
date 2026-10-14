@@ -1,4 +1,4 @@
-"""Typed tools, permission levels and approvals (spec §56–60, §72).
+"""Typed tools, permission levels and approvals.
 
 Every capability the model can use is a `Tool`: a Pydantic argument model, an
 async function, a permission level and a timeout. The registry validates the
@@ -30,7 +30,7 @@ MacCall = Callable[[str, dict[str, Any]], Awaitable[Any]]
 class Permission(StrEnum):
     READ = "read"  # runs freely; independent reads run in parallel
     WRITE = "write"  # reversible changes (e.g. drafts); runs without asking
-    APPROVAL = "approval"  # pauses for the user's explicit yes (spec §19, §72)
+    APPROVAL = "approval"  # pauses for the user's explicit yes
     FORBIDDEN = "forbidden"  # never runs
 
 
@@ -84,7 +84,7 @@ class Tool:
     permission: Permission = Permission.READ
     timeout_s: float = 10.0
     # Results that contain third-party text (email, web pages) are wrapped so
-    # the model treats them as data, never instructions (spec §70–71).
+    # the model treats them as data, never instructions.
     untrusted: bool = False
     # Short label for the UI's tool activity line, e.g. "Searched Gmail".
     label: str = ""

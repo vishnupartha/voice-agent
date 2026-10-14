@@ -1,6 +1,6 @@
 import AVFoundation
 
-/// Taps the microphone and converts it to the wire format: 16 kHz mono PCM16 (spec §11).
+/// Taps the microphone and converts it to the wire format: 16 kHz mono PCM16.
 @MainActor
 final class AudioCapture {
     enum CaptureError: LocalizedError {

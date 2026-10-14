@@ -1,5 +1,5 @@
-"""Gmail tools (spec §23, §26). Reads are live API calls; the local cache and
-history sync (§24–25) come later. Sending always goes through approval."""
+"""Gmail tools. Reads are live API calls; the local cache and
+history sync come later. Sending always goes through approval."""
 
 from __future__ import annotations
 

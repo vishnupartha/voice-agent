@@ -1,4 +1,4 @@
-"""Conversation state, saved to SQLite so it survives restarts (spec §47, §74)."""
+"""Conversation state, saved to SQLite so it survives restarts."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ IDLE_NEW_CONVERSATION_S = 5 * 60
 
 
 def _trim(messages: list[Message]) -> None:
-    """Crude cap until conversation summarization lands (spec §78). Cut at a
+    """Crude cap until conversation summarization lands. Cut at a
     user message so no tool result is left without the call it answers."""
     cut = max(0, len(messages) - MAX_HISTORY_MESSAGES)
     while cut < len(messages) and messages[cut]["role"] != "user":

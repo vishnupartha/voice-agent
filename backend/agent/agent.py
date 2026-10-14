@@ -1,4 +1,4 @@
-"""Agent turn loop with tool calling (spec §59–61, §99).
+"""Agent turn loop with tool calling.
 
 Each step streams the model's reply; visible text goes straight to the client
 (and to TTS), tool calls are collected, run, and their results fed back for

@@ -1,4 +1,4 @@
-"""Facts the user asked the assistant to remember (spec §48–50)."""
+"""Facts the user asked the assistant to remember."""
 
 from __future__ import annotations
 

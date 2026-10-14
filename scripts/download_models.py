@@ -1,4 +1,4 @@
-"""Download local model weights into ~/Library/Application Support/PersonalAgent/models (spec §87).
+"""Download local model weights into ~/Library/Application Support/PersonalAgent/models.
 
 Re-running resumes interrupted downloads and skips complete ones. Hugging Face
 verifies file hashes as it downloads.

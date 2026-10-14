@@ -1,4 +1,4 @@
-"""Voice activity detection: Silero VAD plus an utterance segmenter (spec §12–13).
+"""Voice activity detection: Silero VAD plus an utterance segmenter.
 
 Silero runs on CPU via torch and costs well under a millisecond per 32 ms
 window, so it runs inline on the event loop.

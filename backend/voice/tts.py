@@ -1,4 +1,4 @@
-"""Local speech synthesis: Qwen3-TTS CustomVoice through MLX Audio (spec §5, §12).
+"""Local speech synthesis through MLX Audio: Kokoro (default) or Qwen3-TTS.
 
 `SpeechOutput` turns the agent's streamed text into streamed audio: it cuts the
 text at sentence boundaries and synthesizes each sentence as soon as it is

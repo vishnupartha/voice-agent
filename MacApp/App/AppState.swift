@@ -15,7 +15,7 @@ struct Turn: Identifiable, Equatable {
     var draft: DraftView?
 }
 
-/// One tool call as the UI shows it (spec §17): running, then done or failed.
+/// One tool call as the UI shows it: running, then done or failed.
 struct LiveTool: Identifiable, Equatable {
     let id: String
     let label: String
@@ -25,7 +25,7 @@ struct LiveTool: Identifiable, Equatable {
     var ms = 0
 }
 
-/// An action waiting for the user's yes (spec §19, §72).
+/// An action waiting for the user's yes.
 struct PendingApproval: Identifiable, Equatable {
     let id: String
     let title: String
@@ -41,7 +41,7 @@ final class AppState {
 
     enum Phase: Equatable { case idle, thinking, responding }
 
-    /// Voice interaction state (spec §13). `.off` means the mic is closed.
+    /// Voice interaction state. `.off` means the mic is closed.
     enum VoicePhase: Equatable { case off, listening, hearing, processing, speaking }
 
     private(set) var backend: BackendStatus = .starting
@@ -276,7 +276,7 @@ final class AppState {
 
     // MARK: Voice
 
-    /// Option+Space (spec §14): start talking; while the assistant is working
+    /// Option+Space: start talking; while the assistant is working
     /// or speaking, cut it off and listen; while listening, close the mic.
     func hotkeyPressed() {
         switch voice {
@@ -336,7 +336,7 @@ final class AppState {
         // Fast attack, slow decay, so the meter reads naturally.
         micLevel = max(level, micLevel * 0.8)
         // A real mic always has some noise; exact digital silence means macOS is
-        // blocking the input (spec §85: say so rather than silently fail).
+        // blocking the input (say so rather than silently fail).
         if level > 0 {
             silentChunks = 0
         } else if voice != .off {

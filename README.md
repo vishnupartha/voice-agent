@@ -8,6 +8,8 @@ A voice assistant for your Mac. Press **Option+Space** anywhere, talk, and it an
 
 Speech recognition and the voice run on your Mac. The brain is Google's Gemini Flash (free with a Google account) by default, or, if you prefer everything local, a Qwen3.5 model running on your Mac.
 
+(The repository is called `voice-agent`; the app it builds is **Personal Agent**.)
+
 ## Requirements
 
 - A Mac with Apple Silicon (M1 or later) running macOS 26 (Tahoe) or later
@@ -53,7 +55,10 @@ Things to try: "What's on my calendar tomorrow?", "When am I free Friday afterno
 
 ## Connect Google (optional)
 
-Google only lets apps read your mail through an OAuth client in a Google Cloud project, so each user creates a free one of their own:
+Google only lets apps read your mail through an OAuth client in a Google Cloud project, so each user creates a free one of their own. It takes about five minutes.
+
+<details>
+<summary>Step-by-step setup</summary>
 
 1. Go to <https://console.cloud.google.com/> and create a project (e.g. "Personal Agent").
 2. **APIs & Services → Library**: enable **Gmail API** and **Google Calendar API**.
@@ -64,6 +69,8 @@ Google only lets apps read your mail through an OAuth client in a Google Cloud p
 7. Click **Connect Google…**. Sign in in your browser, click through "Google hasn't verified this app" (it's your own app), and allow access.
 
 While the project's publishing status is *Testing*, Google ends the sign-in after 7 days. To avoid that, choose **Audience → Publish app**; it stays private to you.
+
+</details>
 
 The assistant reads every calendar that's ticked in Google Calendar's sidebar. To hide one from it (say, a calendar someone shared with you), add it to `hidden_calendars` in `~/Library/Application Support/PersonalAgent/preferences.json`.
 
@@ -97,6 +104,10 @@ uv run ruff check backend && uv run ruff format --check backend
 Builds are ad-hoc signed by default. If you rebuild often, sign with your own certificate so the microphone permission survives rebuilds: copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and fill in your team ID.
 
 The app starts the backend itself (`uv run uvicorn backend.api.server:app`, bound to 127.0.0.1:8765), and replaces a backend left running from an earlier session (for example after stopping the app in Xcode). Backend code changes take effect when you quit and reopen the app. Tools that need native macOS APIs (Reminders via EventKit) ask the app over the WebSocket with `ctx.mac(...)`; see `MacApp/System/MacBridge.swift`. Conversations and memories live in SQLite (`backend/db.py`). Settings such as model choices live in `backend/config.py` and can be overridden in a `.env.local` file. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how it all fits together, including how to add a tool.
+
+## Contributing
+
+Issues and pull requests are welcome. For anything bigger than a fix, open an issue first so we can agree on the approach. Adding a tool is the easiest place to start: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#adding-a-tool) walks through it. Before sending a pull request, run `uv run pytest` and `uv run ruff check backend && uv run ruff format --check backend`, and build the app if you changed Swift code.
 
 ## License
 

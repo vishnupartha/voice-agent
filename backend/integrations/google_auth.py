@@ -1,4 +1,4 @@
-"""One Google OAuth connection for Gmail + Calendar (spec §21–22).
+"""One Google OAuth connection for Gmail + Calendar.
 
 The OAuth client (a "Desktop app" client from the user's own Google Cloud
 project) and the resulting tokens live in the macOS Keychain via `keyring`.
@@ -86,9 +86,7 @@ class GoogleAuth:
     def start(self, open_browser: bool = True) -> str:
         config = self._client_config()
         if config is None:
-            raise GoogleNotConnected(
-                "Google isn't set up: run `uv run python -m scripts.google_setup <client_secret.json>` first"
-            )
+            raise GoogleNotConnected("Google isn't set up: choose the OAuth client file in Settings first")
         flow = Flow.from_client_config(config, scopes=SCOPES, redirect_uri=self.redirect_uri)
         url, state = flow.authorization_url(
             access_type="offline", prompt="consent", include_granted_scopes="true"

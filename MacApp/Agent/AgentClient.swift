@@ -1,7 +1,7 @@
 import Foundation
 
 /// One session with the backend over /ws/voice: JSON events plus binary PCM16
-/// audio in both directions (spec §11).
+/// audio in both directions.
 @MainActor
 final class AgentClient {
     private var socket: WebSocketClient?

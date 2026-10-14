@@ -1,5 +1,9 @@
 # Personal Agent
 
+![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-M1%2B-black?logo=apple)
+![macOS 26](https://img.shields.io/badge/macOS-26%2B-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
 A voice assistant for your Mac. Press **Option+Space** anywhere, talk, and it answers out loud. It can check your Gmail and Google Calendar, search the web, set Apple Reminders, keep notes in Apple Notes, and remember things you tell it. Anything that sends, changes or deletes your stuff asks you first.
 
 Speech recognition and the voice run on your Mac. The brain is Google's Gemini Flash (free with a Google account) by default, or, if you prefer everything local, a Qwen3.5 model running on your Mac.
